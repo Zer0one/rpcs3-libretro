@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "VKFramebuffer.h"
+#include "VKResourceManager.h"
 #include "vkutils/image.h"
 #include "vkutils/image_helpers.h"
 
@@ -102,16 +103,31 @@ namespace vk
 	}
 
 	void remove_framebuffers_with_filter(
-		const std::predicate<const std::unique_ptr<vk::framebuffer_holder>&> auto criteria)
+		const std::predicate<const std::unique_ptr<vk::framebuffer_holder>&> auto criteria,
+		bool defer_destruction = false)
 	{
 		std::lock_guard lock(g_framebuffers_mutex);
 
 		for (auto It = g_framebuffers_cache.begin(); It != g_framebuffers_cache.end();)
 		{
-			It->second.erase(
-				std::remove_if(It->second.begin(), It->second.end(), criteria),
-				It->second.end()
-			);
+			auto& framebuffers = It->second;
+			auto retained = framebuffers.begin();
+			for (auto fbo = framebuffers.begin(); fbo != framebuffers.end(); ++fbo)
+			{
+				if (!criteria(*fbo))
+				{
+					if (retained != fbo)
+						*retained = std::move(*fbo);
+					++retained;
+					continue;
+				}
+
+				if (defer_destruction)
+				{
+					get_resource_manager()->dispose(*fbo);
+				}
+			}
+			framebuffers.erase(retained, framebuffers.end());
 
 			if (It->second.empty())
 			{
@@ -126,11 +142,14 @@ namespace vk
 
 	void remove_unused_framebuffers()
 	{
-		// Remove stale framebuffers. Ref counted to prevent use-after-free
+		// CPU references and idle checks only decide cache eviction. Overlay
+		// flips can run ahead of GPU completion, especially during shader loading.
+		// Keep the framebuffer and its image views until the submission event
+		// completes, just like other resources retired by the renderer.
 		remove_framebuffers_with_filter([](const auto& fbo)
 		{
 			return (fbo->unused_check_count() >= 2);
-		});
+		}, true);
 	}
 
 	void remove_framebuffers_with_image(const vk::image* image)

@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "VKLibretro.h"
+#include "VKHelpers.h"
+#include "libretro/libretro_metrics.h"
 #include "vkutils/instance.h"
 #include "vkutils/swapchain.h"
 
@@ -20,6 +22,8 @@ namespace vk::libretro
 		VkPhysicalDeviceFeatures s_features{};
 
 		VkDevice s_frontend_device = VK_NULL_HANDLE;
+		u32 s_frontend_family = umax, s_frontend_index = 0;
+		bool s_separate_queue = false;
 
 		void (*s_lock)(void*) = nullptr;
 		void (*s_unlock)(void*) = nullptr;
@@ -29,7 +33,7 @@ namespace vk::libretro
 
 		std::mutex s_frames_mutex;
 		std::condition_variable s_frames_cv;
-		std::vector<u32> s_ready_frames;
+		std::vector<std::pair<u32, u32>> s_ready_frames;
 
 		// When retro_run last began or returned, whether one is running now,
 		// and whether it is expected to come again
@@ -79,6 +83,51 @@ namespace vk::libretro
 			dst[i] = dst[i] || src[i];
 	}
 
+	void set_frontend_queue(u32 family, u32 index, bool separate)
+	{
+		s_frontend_family = family;
+		s_frontend_index = index;
+		s_separate_queue = separate;
+	}
+	u32 frontend_queue_family() { return s_frontend_family; }
+	u32 frontend_queue_index() { return s_frontend_index; }
+	bool separate_queue() { return s_hw_present && s_separate_queue; }
+	VkQueue frontend_queue(VkDevice device)
+	{
+		VkQueue queue = VK_NULL_HANDLE;
+		vkGetDeviceQueue(device, s_frontend_family, s_frontend_index, &queue);
+		return queue;
+	}
+
+	void drain_queues(const vk::render_device& device)
+	{
+		std::vector<VkQueue> queues{device.get_graphics_queue()};
+		if (device.get_transfer_queue() != queues.front())
+			queues.push_back(device.get_transfer_queue());
+		if (separate_queue())
+			queues.push_back(frontend_queue(device));
+		std::vector<VkFence> fences;
+		for (const auto queue : queues)
+		{
+			VkFence fence = VK_NULL_HANDLE;
+			VkFenceCreateInfo create{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+			CHECK_RESULT(vkCreateFence(device, &create, nullptr, &fence));
+			VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+			const bool frontend_only = separate_queue() && queue == frontend_queue(device);
+			if (frontend_only) { if (s_lock) s_lock(s_lock_handle); }
+			else vk::acquire_global_submit_lock();
+			const auto result = vkQueueSubmit(queue, 1, &submit, fence);
+			if (frontend_only) { if (s_unlock) s_unlock(s_lock_handle); }
+			else vk::release_global_submit_lock();
+			CHECK_RESULT(result);
+			fences.push_back(fence);
+		}
+		// No frontend lock is held while waiting. On device failure leave any
+		// pending fences to device destruction, rather than free in-use handles.
+		CHECK_RESULT(vkWaitForFences(device, ::size32(fences), fences.data(), VK_TRUE, 5'000'000'000ull));
+		for (const auto fence : fences) vkDestroyFence(device, fence, nullptr);
+	}
+
 	void set_frontend_device(VkDevice dev) { s_frontend_device = dev; }
 	bool is_frontend_device(VkDevice dev) { return dev && dev == s_frontend_device; }
 
@@ -91,15 +140,24 @@ namespace vk::libretro
 		s_lock_handle = handle;
 	}
 
+	static thread_local u64 queue_held_start = 0;
+
 	void lock_queue()
 	{
-		if (s_lock)
+		if (s_lock && !separate_queue())
+		{
+			libretro_metrics::scope timing(libretro_metrics::counter::queue_wait);
 			s_lock(s_lock_handle);
+		}
+		queue_held_start = libretro_metrics::enabled() ? libretro_metrics::now_us() : 0;
 	}
 
 	void unlock_queue()
 	{
-		if (s_unlock)
+		if (queue_held_start)
+			libretro_metrics::add(libretro_metrics::counter::queue_hold, libretro_metrics::now_us() - queue_held_start);
+		queue_held_start = 0;
+		if (s_unlock && !separate_queue())
 			s_unlock(s_lock_handle);
 	}
 
@@ -160,6 +218,7 @@ namespace vk::libretro
 			// one frame of the game for this retro_run, and the frame it
 			// draws is the one to show (take_frame)
 			s_step_credits = s_stepping ? 1 : 0;
+			if (s_stepping) libretro_metrics::add(libretro_metrics::counter::steps);
 			s_step_base = s_pushes;
 			s_frontend_attached = true;
 			s_frontend_in_run = true;
@@ -191,18 +250,20 @@ namespace vk::libretro
 		std::vector<u32> overtaken;
 		{
 			std::lock_guard lock(s_frames_mutex);
-			s_ready_frames.push_back(image_index);
+			s_ready_frames.emplace_back(image_index, image_generation());
 			s_pushes++;
 			// the frame a step let the game draw
 			if (s_stepping && s_step_credits > 0)
 				s_step_credits--;
 			while (s_ready_frames.size() > kMaxQueued)
 			{
-				overtaken.push_back(s_ready_frames.front());
+				overtaken.push_back(s_ready_frames.front().first);
 				s_ready_frames.erase(s_ready_frames.begin());
 			}
 		}
 		s_frames_cv.notify_all();
+		libretro_metrics::add(libretro_metrics::counter::ready);
+		libretro_metrics::add(libretro_metrics::counter::dropped, overtaken.size());
 
 		if (auto* swapchain = dynamic_cast<vk::swapchain_LIBRETRO*>(s_swapchain))
 			for (u32 index : overtaken)
@@ -216,12 +277,17 @@ namespace vk::libretro
 		// every pause). A step lets exactly one frame through. In slices, so
 		// a stop of the content is noticed.
 		std::unique_lock lock(s_frames_mutex);
-		while (frontend_stopped())
-			s_frames_cv.wait_for(lock, std::chrono::milliseconds(5));
+		if (frontend_stopped())
+		{
+			libretro_metrics::scope timing(libretro_metrics::counter::pause_wait);
+			while (frontend_stopped())
+				s_frames_cv.wait_for(lock, std::chrono::milliseconds(5));
+		}
 	}
 
-	bool take_frame(u32& image_index)
+	bool take_frame(u32& image_index, u32& generation)
 	{
+		libretro_metrics::scope timing(libretro_metrics::counter::take);
 		std::vector<u32> older;
 		{
 			std::unique_lock lock(s_frames_mutex);
@@ -234,17 +300,19 @@ namespace vk::libretro
 				s_frames_cv.wait_for(lock, kStepWait, [] { return s_pushes != s_step_base; });
 				while (s_ready_frames.size() > 1)
 				{
-					older.push_back(s_ready_frames.front());
+					older.push_back(s_ready_frames.front().first);
 					s_ready_frames.erase(s_ready_frames.begin());
 				}
 			}
 
 			if (s_ready_frames.empty())
 				return false;
-			image_index = s_ready_frames.front();
+			image_index = s_ready_frames.front().first;
+			generation = s_ready_frames.front().second;
 			s_ready_frames.erase(s_ready_frames.begin());
 		}
 
+		libretro_metrics::add(libretro_metrics::counter::dropped, older.size());
 		if (auto* swapchain = dynamic_cast<vk::swapchain_LIBRETRO*>(s_swapchain))
 			for (u32 index : older)
 				swapchain->release_image(index);

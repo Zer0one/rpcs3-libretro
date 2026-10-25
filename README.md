@@ -6,7 +6,9 @@ This repository builds the core and nothing else. The standalone Qt application,
 
 ## Getting the core
 
-The core is built by libretro's buildbot for Linux (x86_64 and aarch64), Windows x64, macOS (Apple Silicon and Intel) and Android (arm64 and x86_64), and is installed from RetroArch: Online Updater > Core Downloader. Test builds of other branches are artifacts of the [Build libretro core](https://github.com/WizzardSK/rpcs3-libretro/actions/workflows/libretro.yml) workflow; their core goes into RetroArch's `cores` directory, together with `rpcs3_libretro.info` in its `info` directory.
+This independent fork publishes numbered packages on its [GitHub Releases page](https://github.com/Zer0one/rpcs3-libretro/releases). Release **v0.1.0.1** includes a macOS Apple Silicon package built for **macOS 26 or later**. Extract `rpcs3_libretro.dylib` and `libzstd_macos_arm64.dylib` into RetroArch's `cores` directory, and `rpcs3_libretro.info` into its `info` directory. The core uses RetroArch's existing MoltenVK framework; no separate MoltenVK library is included. Sync is the default; Async requires a compatible driver and remains experimental.
+
+The original [WizzardSK core](https://github.com/WizzardSK/rpcs3-libretro) is distributed through RetroArch's Online Updater for Linux (x86_64 and aarch64), Windows x64, macOS (Apple Silicon and Intel) and Android (arm64 and x86_64). Those buildbot packages do not identify this fork's numbered release. The inherited [Build libretro core](https://github.com/Zer0one/rpcs3-libretro/actions/workflows/libretro.yml) workflow can produce additional test artifacts on request. This release's local validation covers Apple Silicon macOS only.
 
 The PS3 firmware (`PS3UPDAT.PUP`, from playstation.com) goes into RetroArch's system directory as `system/rpcs3/PS3UPDAT.PUP`; the core installs it on first start. Disc keys for redump ISOs go into `system/rpcs3/data/redump/`, named like the ISO with a `.key` or `.dkey` extension.
 
@@ -34,7 +36,7 @@ The PS3 firmware (`PS3UPDAT.PUP`, from playstation.com) goes into RetroArch's sy
 The Linux build runs in a container with the toolchain RPCS3's CI uses, through `.ci/build-libretro.sh`; see `.github/workflows/libretro.yml` for the exact invocation, and `.ci/build-windows-clang-libretro.sh` for Windows (MSYS2 clang64). A local build is a regular CMake build of the `rpcs3_libretro` target:
 
 ```bash
-git clone --recursive https://github.com/WizzardSK/rpcs3-libretro.git
+git clone --recursive https://github.com/Zer0one/rpcs3-libretro.git
 cd rpcs3-libretro
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
   -DUSE_NATIVE_INSTRUCTIONS=OFF -DUSE_SYSTEM_CURL=ON -DUSE_LIBEVDEV=OFF
@@ -42,6 +44,26 @@ cmake --build build --target rpcs3_libretro
 ```
 
 LLVM is needed for the PPU/SPU recompilers (`-DLLVM_DIR=...`, or `-DSTATIC_LINK_LLVM=OFF` with a shared `libLLVM` next to the core).
+
+### Local Apple Silicon Build
+
+To use RetroArch's installed MoltenVK framework instead of a second provider:
+
+```sh
+RPCS3_RETROARCH_APP="/path/to/RetroArch.app" sh .ci/build-macos-frontend-libretro.sh
+```
+
+This uses Homebrew LLVM 22 and the local macOS version as its deployment target. The signed core, canonical `.info`, and LLVM's compression dependency are staged under `build-macos-arm64/dist/`. Install the core and compression library together in RetroArch's cores directory, and the `.info` in its info directory. MoltenVK stays in the frontend's application bundle. The runtime log verifies that core and frontend use the same Vulkan provider.
+
+On macOS, **Quick Menu → Core Options → GPU → MoltenVK Queue Submission** selects **Sync** (default) or **Async** for the core's Vulkan instance. Save the option and restart RetroArch to apply it; resetting the game can retain the existing Vulkan instance. This setting is independent of asynchronous shader compilation. Vulkan negotiation v2 passes the selection through `VK_EXT_layer_settings`, without changing the driver's global defaults. The startup log reports the actual submission mode, or warns when the driver lacks that extension and keeps its own default.
+
+Sync remains the validated baseline. Async requires a compatible MoltenVK driver and remains experimental: framebuffer retirement fixes the reproduced startup lifetime fault, and a private acquisition-fence correction restored regular frame delivery in earlier Daytona tests, but the 3D/pause-resume acceptance check and the observed texture anomaly remain open for the final driver. Updating the frontend's MoltenVK alone does not change this core option. See the [Async investigation and evidence limits](MACOS_PERFORMANCE.md#async-framebuffer-lifetime-investigation).
+
+When available, RPCS3 and RetroArch use separate Vulkan queues on their shared device. New frames carry a GPU semaphore dependency, and images remain held until every frontend sync index that sampled them has completed, including repeated frames. Only frontend-facing images use concurrent sharing when the queue families differ. A GPU without an available separate queue retains the shared-queue path. Queue selection is automatic and preserves the selected VSync and MoltenVK submission settings. The runtime log identifies the renderer, frontend and transfer families. See the [Daytona result and validation limits](MACOS_PERFORMANCE.md#separate-queue-correction).
+
+For performance diagnosis, enable **Quick Menu → Core Options → Debug → Performance Timing Log**. It writes `[RPCS3 Timing]` summaries once per second to RetroArch's log and `system/rpcs3/rpcs3_detailed.log`. It is disabled by default and can be changed while content runs. The counters separate frontend calls, new/duplicate frames, audio/video callbacks and Vulkan hardware queue/image/fence waits. They measure CPU wall time, not GPU execution time or physical scanout. The [timing-log guide and measured presentation bottleneck](MACOS_PERFORMANCE.md#synchronous-timing-log-investigation) explain the fields. Summarize the uncompressed RPCS3 log with `python3 .ci/summarize-libretro-timing.py /path/to/rpcs3_detailed.log`.
+
+The [local macOS validation report](MACOS_VALIDATION.md) records the successful Daytona boot and race, the initial-cache failure, and the remaining native Cmd-Q teardown limitation. For that build, use RetroArch's internal close/quit path. If Daytona faults in `_cellsurMixerMain` on its first start, preserve its cache and retry; do not treat a loading-screen FPS counter as a successful boot.
 
 ## License
 

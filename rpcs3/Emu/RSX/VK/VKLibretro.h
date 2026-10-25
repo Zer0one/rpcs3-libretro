@@ -19,6 +19,7 @@
 namespace vk
 {
 	class instance;
+	class render_device;
 	class swapchain_base;
 }
 
@@ -40,9 +41,21 @@ namespace vk::libretro
 	void set_frontend_device(VkDevice dev);
 	bool is_frontend_device(VkDevice dev);
 
-	// The frontend submits to the same graphics queue from its own thread, and
-	// a VkQueue must be externally synchronized: every submit of the renderer,
-	// and every wait for the device to go idle, takes the frontend's lock.
+	// Negotiated frontend queue. A separate queue keeps drawable acquisition
+	// in the frontend from holding up renderer submissions. Set before create.
+	void set_frontend_queue(u32 family, u32 index, bool separate);
+	u32 frontend_queue_family();
+	u32 frontend_queue_index();
+	bool separate_queue();
+	VkQueue frontend_queue(VkDevice device);
+
+	// Drain prior submissions with bounded fences, outside both submit locks.
+	// Only used at renderer resize/shutdown and context destruction.
+	void drain_queues(const vk::render_device& device);
+
+	// A shared VkQueue must be externally synchronized. Renderer submits take
+	// the frontend lock only when both use that queue; a dedicated queue still
+	// uses RPCS3's global submit lock.
 	void set_queue_lock(void (*lock)(void*), void (*unlock)(void*), void* handle);
 	void lock_queue();
 	void unlock_queue();
@@ -58,7 +71,7 @@ namespace vk::libretro
 	// retro_run, so each frame is shown once and in order. A few wait at
 	// most; beyond that the oldest go back to the swapchain unseen.
 	void frame_ready(u32 image_index);
-	bool take_frame(u32& image_index);
+	bool take_frame(u32& image_index, u32& generation);
 	void drop_pending_frames();
 
 	// The core's retro_run tells the handoff it ran, and that it will not
@@ -75,9 +88,9 @@ namespace vk::libretro
 	void frontend_returned();
 	void frontend_detached();
 
-	// Bumped whenever the swapchain's images are made anew (a resize): the
-	// indices the core holds then name images that are gone, and the one the
-	// frontend last got must not be shown again.
+	// Bumped under the swapchain image lock when images are replaced. Queued
+	// indices carry this generation; retired images remain alive while the
+	// frontend may still repeat or sample them.
 	u32 image_generation();
 	void new_image_generation();
 }

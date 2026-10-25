@@ -2,6 +2,7 @@
 
 #include "libretro_audio.h"
 #include "libretro_core.h"
+#include "libretro_metrics.h"
 
 #include <algorithm>
 #include <cstring>
@@ -139,13 +140,23 @@ void libretro_audio_process(retro_audio_sample_batch_t audio_batch_cb)
     while (remaining > 0)
     {
         const size_t want = std::min(remaining, FRAMES_PER_BATCH);
-        const size_t frames = s_audio_backend->GetSamples(buffer, want);
+        size_t frames;
+        {
+            libretro_metrics::scope timing(libretro_metrics::counter::audio_pull);
+            frames = s_audio_backend->GetSamples(buffer, want);
+        }
         if (frames > 0)
         {
-            if (s_multi_available)
-                s_multi.batch_int16(buffer, frames, channels, mask);
-            else if (channels == 2)
-                audio_batch_cb(buffer, frames);
+            size_t accepted = 0;
+            {
+                libretro_metrics::scope timing(libretro_metrics::counter::audio_callback);
+                if (s_multi_available)
+                    accepted = s_multi.batch_int16(buffer, frames, channels, mask);
+                else if (channels == 2)
+                    accepted = audio_batch_cb(buffer, frames);
+            }
+            libretro_metrics::add(libretro_metrics::counter::audio_offered, frames);
+            libretro_metrics::add(libretro_metrics::counter::audio_accepted, accepted);
         }
         remaining -= frames;
         if (frames < want)

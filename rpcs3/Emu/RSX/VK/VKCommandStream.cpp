@@ -21,8 +21,8 @@ namespace vk
 	{
 		g_submit_mutex.lock();
 #ifdef LIBRETRO_CORE
-		// With the libretro core's hardware Vulkan context the frontend
-		// submits to the same queue from its own thread.
+		// Only the shared-queue fallback also needs the frontend's lock.
+		// Dedicated renderer queues remain guarded by g_submit_mutex.
 		vk::libretro::lock_queue();
 #endif
 	}

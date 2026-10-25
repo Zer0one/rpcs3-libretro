@@ -56,7 +56,8 @@ namespace vk
 		VkImageUsageFlags usage,
 		VkImageCreateFlags image_flags,
 		vmm_allocation_pool allocation_pool,
-		rsx::format_class format_class)
+		rsx::format_class format_class,
+		std::span<const u32> shared_queue_families)
 		: m_device(dev)
 	{
 		info.imageType = image_type;
@@ -81,6 +82,13 @@ namespace vk
 			info.sharingMode = VK_SHARING_MODE_CONCURRENT;
 			info.queueFamilyIndexCount = ::size32(concurrency_queue_families);
 			info.pQueueFamilyIndices = concurrency_queue_families.data();
+		}
+
+		if (shared_queue_families.size() > 1)
+		{
+			info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+			info.queueFamilyIndexCount = static_cast<u32>(shared_queue_families.size());
+			info.pQueueFamilyIndices = shared_queue_families.data();
 		}
 
 		VkImageFormatListCreateInfo format_list = { .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO };
@@ -110,6 +118,7 @@ namespace vk
 
 		m_format_class = format_class;
 		info.pNext = nullptr;
+		info.pQueueFamilyIndices = nullptr; // Creation-only spans must not escape.
 	}
 
 	// TODO: Ctor that uses a provided memory heap

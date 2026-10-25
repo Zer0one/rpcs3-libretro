@@ -863,12 +863,18 @@ VKGSRender::~VKGSRender()
 	}
 
 	//Wait for device to finish up with resources
-	// Under the submit lock: waiting for the device to go idle needs every
-	// queue of it externally synchronized, the frontend's too when the libretro
-	// core shares it.
-	vk::acquire_global_submit_lock();
-	vkDeviceWaitIdle(*m_device);
-	vk::release_global_submit_lock();
+	// A frontend-owned device is drained using bounded fences; do not wait
+	// for GPU completion while holding RetroArch's queue mutex.
+#ifdef LIBRETRO_CORE
+	if (vk::libretro::hw_present())
+		vk::libretro::drain_queues(*m_device);
+	else
+#endif
+	{
+		vk::acquire_global_submit_lock();
+		vkDeviceWaitIdle(*m_device);
+		vk::release_global_submit_lock();
+	}
 
 	// Globals. TODO: Refactor lifetime management
 	if (auto async_scheduler = g_fxo->try_get<vk::AsyncTaskScheduler>())

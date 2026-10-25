@@ -499,7 +499,7 @@ namespace vk
 	// Render Device - The actual usable device
 	void render_device::create(vk::physical_device& pdev, u32 graphics_queue_idx, u32 present_queue_idx, u32 transfer_queue_idx)
 	{
-		float queue_priorities[1] = { 0.f };
+		float queue_priorities[3] = { 0.f, 0.f, 0.f };
 		pgpu = &pdev;
 
 		ensure(graphics_queue_idx == present_queue_idx || present_queue_idx == umax); // TODO
@@ -513,6 +513,11 @@ namespace vk
 		graphics_queue.queueCount = 1;
 		graphics_queue.pQueuePriorities = queue_priorities;
 
+#ifdef LIBRETRO_CORE
+		const bool frontend_in_graphics = vk::libretro::separate_queue() && vk::libretro::frontend_queue_family() == graphics_queue_idx;
+		if (frontend_in_graphics)
+			graphics_queue.queueCount = vk::libretro::frontend_queue_index() + 1;
+#endif
 		u32 transfer_queue_sub_index = 0;
 		if (transfer_queue_idx == umax)
 		{
@@ -521,11 +526,10 @@ namespace vk
 			transfer_queue_idx = graphics_queue_idx;
 
 			// Check if we can at least get a second graphics queue
-			if (pdev.get_queue_properties(graphics_queue_idx).queueCount > 1)
+			if (pdev.get_queue_properties(graphics_queue_idx).queueCount > graphics_queue.queueCount)
 			{
 				rsx_log.notice("Will use a spare graphics queue to push transfer operations.");
-				graphics_queue.queueCount++;
-				transfer_queue_sub_index = 1;
+				transfer_queue_sub_index = graphics_queue.queueCount++;
 			}
 		}
 
@@ -543,6 +547,18 @@ namespace vk
 			transfer_queue.queueCount = 1;
 			transfer_queue.pQueuePriorities = queue_priorities;
 		}
+
+#ifdef LIBRETRO_CORE
+		if (vk::libretro::separate_queue() && !frontend_in_graphics)
+		{
+			ensure(vk::libretro::frontend_queue_family() != transfer_queue_idx);
+			auto& frontend = device_queues.emplace_back();
+			frontend.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			frontend.queueFamilyIndex = vk::libretro::frontend_queue_family();
+			frontend.queueCount = 1;
+			frontend.pQueuePriorities = queue_priorities;
+		}
+#endif
 
 		// Set up instance information
 		std::vector<const char*> requested_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };

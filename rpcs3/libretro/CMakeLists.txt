@@ -22,6 +22,7 @@ libretro_embed_vblank_unlock(${CMAKE_CURRENT_BINARY_DIR}/libretro_vblank_unlock.
 
 add_library(rpcs3_libretro SHARED
     libretro_core.cpp
+    libretro_metrics.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/libretro_ui_icons.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/libretro_config_database.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/libretro_patches.cpp
@@ -38,6 +39,7 @@ add_library(rpcs3_libretro SHARED
     ${CMAKE_SOURCE_DIR}/rpcs3/Input/product_info.cpp
     ${CMAKE_SOURCE_DIR}/rpcs3/Input/ps_move_config.cpp
     ${CMAKE_SOURCE_DIR}/rpcs3/Input/ps_move_tracker.cpp
+    ${CMAKE_SOURCE_DIR}/rpcs3/Input/blob_detector.cpp
     ${CMAKE_SOURCE_DIR}/rpcs3/Input/pad_thread.cpp
 )
 

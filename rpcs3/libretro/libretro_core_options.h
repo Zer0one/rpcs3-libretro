@@ -183,6 +183,17 @@ struct retro_core_option_v2_definition option_defs_us[] = {
         { {"opengl", "OpenGL"}, {"vulkan", "Vulkan"}, {"null", "Null (No Video)"}, {NULL, NULL} },
         "vulkan"
     },
+#ifdef __APPLE__
+    {
+        "rpcs3_moltenvk_queue_submission", "MoltenVK Queue Submission", NULL,
+        "Choose Sync or Async submission for the macOS Vulkan frontend. Sync is the validated default; Async requires a compatible MoltenVK driver and remains experimental. Restart RetroArch after changing this option. This is independent of asynchronous shader compilation.",
+        NULL, "gpu",
+        { {"sync", "Sync"}, {"async", "Async"}, {NULL, NULL} },
+        // Keep the validated Sync baseline until Async 3D and pause/resume
+        // correctness have been confirmed with the selected driver.
+        "sync"
+    },
+#endif
     {
         "rpcs3_aspect_ratio", "Aspect Ratio", NULL,
         "Changes output aspect ratio. Only some PS3 games support native 4:3. (Restart required)",
@@ -605,6 +616,13 @@ struct retro_core_option_v2_definition option_defs_us[] = {
         "RPCS3's own performance overlay, drawn over the game: the game's frame rate as RPCS3 counts it, and at higher detail levels frame times and CPU and GPU load.",
         NULL, "core",
         { {"disabled", NULL}, {"minimal", "Frame rate only"}, {"low", "Low"}, {"medium", "Medium"}, {"high", "High"}, {NULL, NULL} },
+        "disabled"
+    },
+    {
+        "rpcs3_timing_log", "Performance Timing Log", NULL,
+        "Writes one diagnostic summary per second to RetroArch and rpcs3_detailed.log: frontend cadence, shown/duplicate frames and audio/video callback times; Vulkan hardware completed/dropped frames, queue contention, image acquisition and fence waits. CPU wall times, not GPU execution time or physical presentation. Disabled by default to avoid measurement overhead.",
+        NULL, "debug",
+        { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
         "disabled"
     },
     {

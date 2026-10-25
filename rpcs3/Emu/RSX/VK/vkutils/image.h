@@ -1,4 +1,5 @@
 #pragma once
+#include <span>
 
 #include "../VulkanAPI.h"
 #include "../../Common/TextureUtils.h"
@@ -63,7 +64,8 @@ namespace vk
 			VkImageUsageFlags usage,
 			VkImageCreateFlags image_flags,
 			vmm_allocation_pool allocation_pool,
-			rsx::format_class format_class = RSX_FORMAT_CLASS_UNDEFINED);
+			rsx::format_class format_class = RSX_FORMAT_CLASS_UNDEFINED,
+			std::span<const u32> shared_queue_families = {});
 
 		virtual ~image();
 

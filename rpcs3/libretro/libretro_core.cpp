@@ -46,6 +46,9 @@
 #include "Emu/RSX/VK/vkutils/instance.h"
 #include "Emu/RSX/VK/vkutils/swapchain.h"
 #include "libretro_vulkan.h"
+#ifdef __APPLE__
+#include <dlfcn.h>
+#endif
 #endif
 #include "Emu/RSX/Null/NullGSRender.h"
 #include "Emu/IdManager.h"
@@ -67,6 +70,7 @@
 #include "Utilities/stack_trace.h"
 
 #include "libretro_audio.h"
+#include "libretro_metrics.h"
 #include "libretro_input.h"
 #include "libretro_video.h"
 #include "libretro_firmware.h"
@@ -162,6 +166,16 @@ static void lrcore_restore_timer_resolution()
 // Libretro callbacks
 static retro_environment_t environ_cb = nullptr;
 static retro_video_refresh_t video_cb = nullptr;
+
+static void measured_video_refresh(const void* data, unsigned width, unsigned height, size_t pitch)
+{
+    {
+        libretro_metrics::scope timing(libretro_metrics::counter::video_callback);
+        video_cb(data, width, height, pitch);
+    }
+    libretro_metrics::add(data ? libretro_metrics::counter::shown : libretro_metrics::counter::duplicate);
+}
+
 static retro_audio_sample_t audio_cb = nullptr;
 static retro_audio_sample_batch_t audio_batch_cb = nullptr;
 static retro_input_poll_t input_poll_cb = nullptr;
@@ -547,6 +561,12 @@ static std::string get_option_value(const char* key, const char* default_val = "
     return default_val;
 }
 
+#ifdef __APPLE__
+// Preserve the requested mode when RetroArch temporarily stops answering
+// option queries while rebuilding its video driver. Apply it at instance creation.
+static bool s_moltenvk_synchronous = true;
+#endif
+
 // What the frontend was last told: the frame size, and the largest frame it
 // made room for. Both start over whenever it asks for the AV info again.
 static unsigned s_reported_width = 0;
@@ -646,6 +666,10 @@ static void libretro_apply_core_options()
         if (!environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &probe) || !probe.value)
             return;
     }
+
+#ifdef __APPLE__
+    s_moltenvk_synchronous = get_option_value("rpcs3_moltenvk_queue_submission", "sync") != "async";
+#endif
 
     // ==================== CPU OPTIONS ====================
     // PPU Decoder
@@ -884,6 +908,8 @@ static void libretro_apply_core_options()
     g_cfg.video.disable_vertex_cache.set(enabled("rpcs3_disable_vertex_cache", "disabled"));
     g_cfg.video.force_cpu_blit_processing.set(enabled("rpcs3_cpu_blit", "disabled"));
     g_cfg.video.disable_blit_engine_upscaling.set(enabled("rpcs3_disable_blit_upscaling", "disabled"));
+
+    libretro_metrics::enable(enabled("rpcs3_timing_log", "disabled"));
 
     // The performance overlay is read when the RSX thread starts; a change
     // while a game runs is handed to it here.
@@ -2223,6 +2249,36 @@ static bool setup_hw_render()
 // it after destroy_device, where the core frees what it made on it.
 
 static const struct retro_hw_render_interface_vulkan* s_vk_iface = nullptr;
+
+// Dedicated-queue handoff, owned by the frontend thread. Each image stays
+// unavailable to RSX while any frontend sync index may still sample it,
+// including duplicate frames. A generation distinguishes images across resets.
+struct vk_frontend_image_use
+{
+    u32 index, generation, pending_mask;
+};
+static std::vector<vk_frontend_image_use> s_vk_image_uses;
+static std::array<VkSemaphore, 32> s_vk_ready_semaphores{};
+static u32 s_vk_sync_mask = 0;
+static u32 s_vk_shown = umax, s_vk_shown_generation = 0;
+static unsigned s_vk_width = 1280, s_vk_height = 720;
+static retro_vulkan_image s_vk_image{};
+
+static void vk_clear_handoff(VkDevice device)
+{
+    // Caller has drained the queues or observed the interface's idle mask change.
+    for (auto& semaphore : s_vk_ready_semaphores)
+    {
+        if (semaphore) vkDestroySemaphore(device, semaphore, nullptr);
+        semaphore = VK_NULL_HANDLE;
+    }
+    s_vk_sync_mask = 0;
+    s_vk_image_uses.clear();
+    s_vk_shown = umax;
+    s_vk_shown_generation = 0;
+    s_vk_image = {};
+}
+
 static retro_hw_render_callback s_vk_hw_render{};
 
 static const VkApplicationInfo* vk_get_application_info()
@@ -2237,12 +2293,104 @@ static const VkApplicationInfo* vk_get_application_info()
     return &info;
 }
 
+static bool vk_frontend_provider_matches(PFN_vkGetInstanceProcAddr get_instance_proc_addr)
+{
+#ifdef __APPLE__
+    // An instance from one MoltenVK cannot be passed to a second copy linked
+    // by the core. Resolve both entry points through their actual providers.
+    auto frontend_create = get_instance_proc_addr(VK_NULL_HANDLE, "vkCreateInstance");
+    auto core_create = vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance");
+    Dl_info provider{};
+    dladdr(reinterpret_cast<void*>(frontend_create), &provider);
+    if (!frontend_create || frontend_create != core_create)
+    {
+        if (log_cb)
+            log_cb(RETRO_LOG_ERROR, "RPCS3: Vulkan provider mismatch: the core must link the frontend's MoltenVK (%s)\n",
+                provider.dli_fname ? provider.dli_fname : "unknown");
+        return false;
+    }
+    if (log_cb)
+        log_cb(RETRO_LOG_INFO, "RPCS3: Vulkan uses the frontend's provider: %s\n",
+            provider.dli_fname ? provider.dli_fname : "unknown");
+#endif
+    return true;
+}
+
+static VkInstance vk_create_instance(PFN_vkGetInstanceProcAddr get_instance_proc_addr,
+    const VkApplicationInfo* app, retro_vulkan_create_instance_wrapper_t create_instance_wrapper, void* opaque)
+{
+    if (!vk_frontend_provider_matches(get_instance_proc_addr))
+        return VK_NULL_HANDLE;
+
+    VkInstanceCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    info.pApplicationInfo = app;
+#ifdef __APPLE__
+    // Identify the local Xenia driver, but configure only this instance;
+    // never change MoltenVK's process defaults.
+    u32 patch_version = 0;
+    Dl_info provider{};
+    auto query = get_instance_proc_addr(VK_NULL_HANDLE, "vkGetMoltenVKConfigurationMVK");
+    if (query && dladdr(reinterpret_cast<void*>(query), &provider) && provider.dli_fname)
+    {
+        if (void* library = dlopen(provider.dli_fname, RTLD_LAZY | RTLD_LOCAL | RTLD_NOLOAD))
+        {
+            using patch_version_fn = u32 (*)();
+            auto version = reinterpret_cast<patch_version_fn>(dlsym(library, "xeniaMoltenVKDrawableOwnershipPatchVersion"));
+            Dl_info marker{};
+            if (version && dladdr(reinterpret_cast<void*>(version), &marker) && marker.dli_fbase == provider.dli_fbase)
+                patch_version = version();
+            dlclose(library);
+        }
+    }
+
+    auto enumerate = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(
+        get_instance_proc_addr(VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties"));
+    u32 count = 0;
+    std::vector<VkExtensionProperties> extensions;
+    bool layer_settings = false;
+    if (enumerate && enumerate(nullptr, &count, nullptr) == VK_SUCCESS)
+    {
+        extensions.resize(count);
+        if (enumerate(nullptr, &count, extensions.data()) == VK_SUCCESS)
+            for (const auto& extension : extensions)
+                layer_settings |= std::strcmp(extension.extensionName, VK_EXT_LAYER_SETTINGS_EXTENSION_NAME) == 0;
+    }
+    // Sync remains the validated default; the driver's patch marker alone is
+    // not an RPCS3 Async compatibility guarantee. This setting is instance-local
+    // and cannot change submissions on an already-created instance.
+    s_moltenvk_synchronous = get_option_value("rpcs3_moltenvk_queue_submission",
+        s_moltenvk_synchronous ? "sync" : "async") != "async";
+    VkBool32 synchronous = s_moltenvk_synchronous ? VK_TRUE : VK_FALSE;
+    VkLayerSettingEXT setting{"MoltenVK", "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS",
+        VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &synchronous};
+    VkLayerSettingsCreateInfoEXT settings{VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, nullptr, 1, &setting};
+    const char* extension = VK_EXT_LAYER_SETTINGS_EXTENSION_NAME;
+    if (layer_settings)
+    {
+        info.pNext = &settings;
+        info.enabledExtensionCount = 1;
+        info.ppEnabledExtensionNames = &extension;
+    }
+    if (log_cb)
+    {
+        if (!layer_settings)
+            log_cb(RETRO_LOG_WARN, "RPCS3: MoltenVK Queue Submission option cannot be applied without VK_EXT_layer_settings; using driver default\n");
+        log_cb(RETRO_LOG_INFO, "RPCS3: MoltenVK patch %u; per-instance queue submission: %s\n",
+            patch_version, layer_settings ? (synchronous ? "synchronous" : "asynchronous") : "driver default (no layer settings)");
+    }
+#endif
+    return create_instance_wrapper(opaque, &info);
+}
+
 static bool vk_create_device(struct retro_vulkan_context* context, VkInstance instance, VkPhysicalDevice gpu,
-    VkSurfaceKHR surface, PFN_vkGetInstanceProcAddr /*get_instance_proc_addr*/,
+    VkSurfaceKHR surface, PFN_vkGetInstanceProcAddr get_instance_proc_addr,
     const char** required_device_extensions, unsigned num_required_device_extensions,
     const char** /*required_device_layers*/, unsigned /*num_required_device_layers*/,
     const VkPhysicalDeviceFeatures* required_features)
 {
+    if (!vk_frontend_provider_matches(get_instance_proc_addr))
+        return false;
     vk::instance& inst = vk::libretro::shared_instance();
     inst.adopt(instance);
     std::vector<vk::physical_device>& gpus = inst.enumerate_devices();
@@ -2269,38 +2417,43 @@ static bool vk_create_device(struct retro_vulkan_context* context, VkInstance in
     if (!chosen)
         chosen = &gpus[0];
 
-    // The graphics queue the frontend shares, and a separate compute and
-    // transfer family for the renderer's async work where there is one - the
-    // choice the headless swapchain makes.
-    u32 graphics_family = umax;
+    // Keep presentation on a graphics+compute family supported by the surface.
+    // Prefer another queue in that family, otherwise another graphics+compute
+    // family for the renderer. Transfer work must not take the frontend queue.
+    const VkQueueFlags graphics = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
+    u32 frontend_family = umax, frontend_index = 0, graphics_family = umax;
     u32 transfer_family = umax;
-    for (u32 i = 0, families = chosen->get_queue_count(); i < families; ++i)
+    for (u32 i = 0; i < chosen->get_queue_count(); ++i)
     {
-        const auto flags = chosen->get_queue_properties(i).queueFlags;
-        if (graphics_family == umax && (flags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
-            graphics_family = i;
-        else if (transfer_family == umax && (flags & (VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT)) == (VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT))
-            transfer_family = i;
+        const auto& props = chosen->get_queue_properties(i);
+        if (!props.queueCount || (props.queueFlags & graphics) != graphics) continue;
+        VkBool32 present = VK_TRUE;
+        if (surface && vkGetPhysicalDeviceSurfaceSupportKHR(*chosen, i, surface, &present) != VK_SUCCESS) continue;
+        if (present) { frontend_family = graphics_family = i; break; }
     }
     if (graphics_family == umax)
     {
-        if (log_cb)
-            log_cb(RETRO_LOG_ERROR, "RPCS3: Vulkan: %s has no graphics queue\n", chosen->get_name().c_str());
+        if (log_cb) log_cb(RETRO_LOG_ERROR, "RPCS3: Vulkan: no graphics/compute queue can present\n");
         return false;
     }
-
-    // The frontend presents from the queue it is given, so it has to be able to.
-    if (surface)
-    {
-        VkBool32 can_present = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(*chosen, graphics_family, surface, &can_present);
-        if (!can_present)
+    if (chosen->get_queue_properties(frontend_family).queueCount > 1)
+        frontend_index = 1;
+    else
+        for (u32 i = 0; i < chosen->get_queue_count(); ++i)
         {
-            if (log_cb)
-                log_cb(RETRO_LOG_ERROR, "RPCS3: Vulkan: the graphics queue of %s cannot present to the frontend's window\n", chosen->get_name().c_str());
-            return false;
+            const auto& props = chosen->get_queue_properties(i);
+            if (i != frontend_family && props.queueCount && (props.queueFlags & graphics) == graphics)
+            { graphics_family = i; break; }
         }
+    for (u32 i = 0; i < chosen->get_queue_count(); ++i)
+    {
+        const auto& props = chosen->get_queue_properties(i);
+        const VkQueueFlags transfer = VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
+        if (i != graphics_family && i != frontend_family && props.queueCount && (props.queueFlags & transfer) == transfer)
+        { transfer_family = i; break; }
     }
+    vk::libretro::set_frontend_queue(frontend_family, frontend_index,
+        frontend_family != graphics_family || frontend_index != 0);
 
     vk::libretro::set_frontend_requirements(required_device_extensions, num_required_device_extensions, required_features);
     vk::libretro::set_hw_present(true);
@@ -2325,14 +2478,15 @@ static bool vk_create_device(struct retro_vulkan_context* context, VkInstance in
 
     context->gpu = *chosen;
     context->device = dev;
-    context->queue = dev.get_graphics_queue();
-    context->queue_family_index = graphics_family;
-    context->presentation_queue = dev.get_graphics_queue();
-    context->presentation_queue_family_index = graphics_family;
+    context->queue = vk::libretro::frontend_queue(dev);
+    context->queue_family_index = frontend_family;
+    context->presentation_queue = context->queue;
+    context->presentation_queue_family_index = frontend_family;
 
     if (log_cb)
-        log_cb(RETRO_LOG_INFO, "RPCS3: Vulkan device created on %s for the frontend's context (queue family %u)\n",
-            chosen->get_name().c_str(), graphics_family);
+        log_cb(RETRO_LOG_INFO, "RPCS3: Vulkan device on %s: renderer %u:0, frontend %u:%u, transfer %u; %s queue\n",
+            chosen->get_name().c_str(), graphics_family, frontend_family, frontend_index, dev.get_transfer_queue_family(),
+            vk::libretro::separate_queue() ? "separate" : "shared");
     return true;
 }
 
@@ -2367,9 +2521,8 @@ static void vk_release_device_resources()
     }
 
     // Nothing of the device may be in use, the frontend's last frame included.
-    vk::acquire_global_submit_lock();
-    vkDeviceWaitIdle(swapchain->get_device());
-    vk::release_global_submit_lock();
+    vk::libretro::drain_queues(swapchain->get_device());
+    vk_clear_handoff(swapchain->get_device());
 
     vk::libretro::drop_pending_frames();
     swapchain->destroy(true);
@@ -2383,10 +2536,12 @@ static void vk_release_device_resources()
 
 static const struct retro_hw_render_context_negotiation_interface_vulkan s_vk_negotiation{
     RETRO_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_VULKAN,
-    1, // create_device, not create_device2: the frontend's instance is enough
+    RETRO_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_VULKAN_VERSION,
     vk_get_application_info,
     vk_create_device,
     nullptr, // see vk_release_device_resources
+    vk_create_instance,
+    nullptr, // retain the existing device feature negotiation
 };
 
 static void vk_fetch_interface()
@@ -2407,6 +2562,12 @@ static void vk_context_reset()
     {
         if (log_cb)
             log_cb(RETRO_LOG_ERROR, "RPCS3: Vulkan: the frontend gave a context but no Vulkan interface\n");
+        return;
+    }
+
+    if (vk::libretro::separate_queue() && (!s_vk_iface->get_sync_index || !s_vk_iface->get_sync_index_mask || !s_vk_iface->wait_sync_index))
+    {
+        if (log_cb) log_cb(RETRO_LOG_ERROR, "RPCS3: Vulkan interface lacks required frontend completion callbacks\n");
         return;
     }
 
@@ -2460,6 +2621,88 @@ static bool setup_vulkan_hw_render()
     return true;
 }
 
+// The renderer and frontend use different queues. A semaphore makes writes
+// visible to frontend sampling; its sync-index fence proves all readers are
+// finished before the renderer may acquire an image again.
+static void vk_present_separate_queue(vk::swapchain_LIBRETRO& swapchain)
+{
+    const auto& device = swapchain.get_device();
+    const u32 mask = s_vk_iface->get_sync_index_mask(s_vk_iface->handle);
+    const u32 sync_index = s_vk_iface->get_sync_index(s_vk_iface->handle);
+    ensure(sync_index < 32 && (mask & (1u << sync_index)));
+    if (s_vk_sync_mask && mask != s_vk_sync_mask)
+    {
+        // Interface contract: a changed mask means the device is idle.
+        for (auto& use : s_vk_image_uses) use.pending_mask = 0;
+        for (auto& semaphore : s_vk_ready_semaphores)
+        {
+            if (semaphore) vkDestroySemaphore(device, semaphore, nullptr);
+            semaphore = VK_NULL_HANDLE;
+        }
+    }
+    s_vk_sync_mask = mask;
+    {
+        libretro_metrics::scope timing(libretro_metrics::counter::frontend_wait);
+        s_vk_iface->wait_sync_index(s_vk_iface->handle);
+    }
+    const u32 bit = 1u << sync_index;
+    for (auto& use : s_vk_image_uses) use.pending_mask &= ~bit;
+
+    u32 index = umax, generation = 0;
+    vk::swapchain_LIBRETRO::hw_image image;
+    const bool new_frame = vk::libretro::take_frame(index, generation) && swapchain.get_hw_image(index, generation, image);
+    libretro_check_frame_stall(new_frame);
+    if (new_frame)
+    {
+        auto& ready = s_vk_ready_semaphores[sync_index];
+        if (!ready)
+        {
+            VkSemaphoreCreateInfo create{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+            CHECK_RESULT(vkCreateSemaphore(device, &create, nullptr, &ready));
+        }
+        // take_frame has already observed the producer's fence. This signal
+        // after its commands provides the cross-queue device memory dependency.
+        VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+        submit.signalSemaphoreCount = 1;
+        submit.pSignalSemaphores = &ready;
+        {
+            libretro_metrics::scope timing(libretro_metrics::counter::handoff_submit);
+            vk::acquire_global_submit_lock();
+            const auto result = vkQueueSubmit(device.get_graphics_queue(), 1, &submit, VK_NULL_HANDLE);
+            vk::release_global_submit_lock();
+            CHECK_RESULT(result);
+        }
+        s_vk_image.image_view = image.view;
+        s_vk_image.image_layout = VK_IMAGE_LAYOUT_GENERAL;
+        s_vk_image.create_info = image.view_info;
+        s_vk_iface->set_image(s_vk_iface->handle, &s_vk_image, 1, &ready, VK_QUEUE_FAMILY_IGNORED);
+        s_vk_shown = index;
+        s_vk_shown_generation = generation;
+        s_vk_width = image.width;
+        s_vk_height = image.height;
+        s_vk_image_uses.push_back({index, generation, 0});
+        report_frame_size(s_vk_width, s_vk_height);
+    }
+
+    // A duplicate can extend the same image's lifetime over several indices.
+    // Keep the last image held even when all current readers have completed.
+    for (auto& use : s_vk_image_uses)
+        if (use.index == s_vk_shown && use.generation == s_vk_shown_generation)
+            use.pending_mask |= bit;
+    measured_video_refresh(new_frame ? RETRO_HW_FRAME_BUFFER_VALID : nullptr, s_vk_width, s_vk_height, 0);
+
+    std::erase_if(s_vk_image_uses, [&](const auto& use)
+    {
+        if (use.pending_mask || (use.index == s_vk_shown && use.generation == s_vk_shown_generation)) return false;
+        swapchain.release_image(use.index, use.generation);
+        return true;
+    });
+    const u32 current_generation = vk::libretro::image_generation();
+    if (s_vk_shown != umax && s_vk_shown_generation == current_generation &&
+        std::none_of(s_vk_image_uses.begin(), s_vk_image_uses.end(), [&](const auto& use) { return use.generation != current_generation; }))
+        swapchain.free_retired(current_generation);
+}
+
 // Hand the newest finished frame to the frontend. An image it has been given
 // is held until it can no longer be using it: replaced, and then as many
 // frames gone by as the frontend has frames in flight.
@@ -2467,6 +2710,11 @@ static void vk_present_frame()
 {
     vk_fetch_interface();
     auto* swapchain = dynamic_cast<vk::swapchain_LIBRETRO*>(vk::libretro::shared_swapchain());
+    if (swapchain && s_vk_iface && vk::libretro::separate_queue())
+    {
+        vk_present_separate_queue(*swapchain);
+        return;
+    }
 
     static u32 s_shown = umax;
     static u32 s_generation = 0;
@@ -2485,13 +2733,20 @@ static void vk_present_frame()
         s_shown = umax;
     }
 
-    u32 index = umax;
+    u32 index = umax, frame_generation = 0;
     vk::swapchain_LIBRETRO::hw_image image;
-    const bool new_frame = swapchain && s_vk_iface && vk::libretro::take_frame(index) && swapchain->get_hw_image(index, image);
+    const bool new_frame = swapchain && s_vk_iface && vk::libretro::take_frame(index, frame_generation) && swapchain->get_hw_image(index, frame_generation, image);
     libretro_check_frame_stall(new_frame);
 
     if (new_frame)
     {
+        // A resize can finish between the generation check and take_frame.
+        if (frame_generation != s_generation)
+        {
+            s_generation = frame_generation;
+            s_replaced.clear();
+            s_shown = umax;
+        }
         s_image.image_view = image.view;
         s_image.image_layout = VK_IMAGE_LAYOUT_GENERAL;
         s_image.create_info = image.view_info;
@@ -2503,12 +2758,12 @@ static void vk_present_frame()
         s_width = image.width;
         s_height = image.height;
         report_frame_size(s_width, s_height);
-        video_cb(RETRO_HW_FRAME_BUFFER_VALID, s_width, s_height, 0);
+        measured_video_refresh(RETRO_HW_FRAME_BUFFER_VALID, s_width, s_height, 0);
     }
     else
     {
         // The frontend shows the last image again, or nothing yet.
-        video_cb(NULL, s_width, s_height, 0);
+        measured_video_refresh(NULL, s_width, s_height, 0);
     }
 
     if (swapchain)
@@ -2518,7 +2773,7 @@ static void vk_present_frame()
             in_flight = std::max(1, std::popcount(s_vk_iface->get_sync_index_mask(s_vk_iface->handle)));
         while (!s_replaced.empty() && s_frame - s_replaced.front().second > in_flight)
         {
-            swapchain->release_image(s_replaced.front().first);
+            swapchain->release_image(s_replaced.front().first, s_generation);
             s_replaced.pop_front();
         }
 
@@ -2539,7 +2794,7 @@ static void vk_present_frame()
         }
         else if (s_frame - s_retire_from > in_flight)
         {
-            swapchain->free_retired();
+            swapchain->free_retired(s_generation);
             s_retire_from = 0;
         }
     }
@@ -3022,6 +3277,7 @@ bool retro_load_game_special(unsigned game_type, const struct retro_game_info* i
 
 void retro_unload_game(void)
 {
+    libretro_metrics::enable(false);
     s_pkg_install_only = false;
     s_pkg_install_frames = 0;
     // A motor left running would keep going after the game is gone.
@@ -3066,7 +3322,7 @@ void retro_run(void)
         // it were only a wait (NNshi)
         // 32 bits a pixel, so the pitch fits whichever format RetroArch is in
         static u32 s_black[320 * 240] = {};
-        video_cb(s_black, 320, 240, 320 * sizeof(u32));
+        measured_video_refresh(s_black, 320, 240, 320 * sizeof(u32));
         if (++s_pkg_install_frames == 1)
             environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, nullptr);
         return;
@@ -3099,6 +3355,14 @@ void retro_run(void)
         return;
     }
     s_stopped_frames = 0;
+
+    const auto timing_start = libretro_metrics::enabled() ? libretro_metrics::now_us() : 0;
+    libretro_metrics::begin_run(timing_start);
+    struct timing_run_end
+    {
+        u64 start;
+        ~timing_run_end() { libretro_metrics::finish_run(start, log_cb); }
+    } timing_end{timing_start};
 
     static u64 s_run_counter = 0;
     s_run_counter++;
@@ -3186,10 +3450,10 @@ void retro_run(void)
             report_frame_size(sw_width, sw_height);
             s_sw_width = sw_width;
             s_sw_height = sw_height;
-            video_cb(pixels, sw_width, sw_height, sw_pitch);
+            measured_video_refresh(pixels, sw_width, sw_height, sw_pitch);
         }
         else
-            video_cb(NULL, s_sw_width, s_sw_height, 0);
+            measured_video_refresh(NULL, s_sw_width, s_sw_height, 0);
         return;
     }
 
@@ -3228,13 +3492,13 @@ void retro_run(void)
         // CRITICAL: FBOs are NOT shared between GL contexts, so RSX renders to a shared texture,
         // and we blit that texture to RetroArch's actual FBO here on the main thread.
         libretro_blit_to_frontend();
-        video_cb(RETRO_HW_FRAME_BUFFER_VALID, frame_width, frame_height, 0);
+        measured_video_refresh(RETRO_HW_FRAME_BUFFER_VALID, frame_width, frame_height, 0);
         libretro_mark_frame_presented();
     }
     else
     {
         // No new frame - tell RetroArch to reuse the previous frame (frame duping)
-        video_cb(NULL, frame_width, frame_height, 0);
+        measured_video_refresh(NULL, frame_width, frame_height, 0);
     }
 }
 

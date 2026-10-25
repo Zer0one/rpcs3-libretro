@@ -4,6 +4,17 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+## v0.1.0.1 — 2026-10-25
+
+- macOS: new GPU option MoltenVK Queue Submission selects Sync (default) or experimental Async for the core's Vulkan instance. Save the selection and restart RetroArch to apply it; changing the option does not alter the driver's global defaults.
+
+- Vulkan keeps evicted framebuffers and their image views alive until submitted GPU work completes. This fixes the reproduced Daytona startup crash when using asynchronous MoltenVK. The macOS core defaults to synchronous submission while Async 3D and pause/resume correctness remain under investigation.
+
+- Vulkan presentation uses a separate frontend queue when the GPU offers one, with semaphore handoff and frontend completion tracking before an image is reused. This removes RetroArch drawable-acquisition stalls from the renderer's queue on macOS while keeping VSync and synchronous MoltenVK submissions enabled. The shared-queue path remains available on devices without a spare queue.
+- Vulkan resize and shutdown drain prior work with bounded fences outside RetroArch's queue mutex; image generations are checked when handing over and releasing frames across resets.
+
+- New Debug option Performance Timing Log, disabled by default: once-per-second CPU timing and frame-flow summaries in RetroArch and RPCS3's log distinguish renderer throughput from frontend calls, queue contention, image/fence waits and audio/video callbacks.
+- macOS local builds can link RetroArch's MoltenVK framework directly and verify provider identity at load. Queue submission defaults to synchronous for the core's instance; the Async follow-up and remaining presentation limitations are documented in `MACOS_PERFORMANCE.md`.
 - Updated the emulation engine to RPCS3 v0.0.43-20400, including upstream CPU, RSX and savedata fixes.
 
 - Linux and macOS: the core raises the limit of open files as standalone RPCS3 does (4096 on Linux). With the frontend's, often 1024, the NVIDIA Vulkan driver ran out of file descriptors as the first game started, and the game froze at once with "Out of host memory (VK_ERROR_OUT_OF_HOST_MEMORY)" (demifiend9, RTX 4050). The log says the limit the core got.

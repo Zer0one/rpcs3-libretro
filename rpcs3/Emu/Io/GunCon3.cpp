@@ -7,7 +7,9 @@
 #include "Emu/Cell/lv2/sys_usbd.h"
 #include "Emu/system_config.h"
 #include "Emu/RSX/Overlays/overlay_cursor.h"
+#ifndef LIBRETRO_CORE
 #include "Input/wiimote_handler.h"
+#endif
 #include "Input/pad_thread.h"
 #include <cmath>
 #include <climits>
@@ -213,6 +215,11 @@ extern bool is_input_allowed();
 
 bool usb_device_guncon3::handle_wiimote(GunCon3_data& gc)
 {
+#ifdef LIBRETRO_CORE
+	// The frontend owns input; the standalone HID handler is not built.
+	(void)gc;
+	return false;
+#else
 	if (!get_wiimote_config().use_for_guncon.get())
 		return false;
 
@@ -284,6 +291,7 @@ bool usb_device_guncon3::handle_wiimote(GunCon3_data& gc)
 	}
 
 	return true;
+#endif
 }
 
 void usb_device_guncon3::interrupt_transfer(u32 buf_size, u8* buf, u32 endpoint, UsbTransfer* transfer)

@@ -1,4 +1,7 @@
 #include "stdafx.h"
+#ifdef LIBRETRO_CORE
+#include "libretro/libretro_metrics.h"
+#endif
 #include "VKCommandStream.h"
 #include "VKGSRender.h"
 #ifdef LIBRETRO_CORE
@@ -85,18 +88,18 @@ bool VKGSRender::reinitialize_swapchain()
 	m_upscaler.reset();
 
 	// Drain all the queues
-	// Under the submit lock: waiting for the device to go idle needs every
-	// queue of it externally synchronized, the frontend's too when the libretro
-	// core shares it.
-	vk::acquire_global_submit_lock();
-	vkDeviceWaitIdle(*m_device);
-	vk::release_global_submit_lock();
-
+	// A frontend-owned device is drained using bounded fences; do not wait
+	// for GPU completion while holding RetroArch's queue mutex.
 #ifdef LIBRETRO_CORE
-	// The images are about to be made anew; the frontend's are among them.
 	if (vk::libretro::hw_present())
-		vk::libretro::new_image_generation();
+		vk::libretro::drain_queues(*m_device);
+	else
 #endif
+	{
+		vk::acquire_global_submit_lock();
+		vkDeviceWaitIdle(*m_device);
+		vk::release_global_submit_lock();
+	}
 
 	// Clean the FBO caches
 	for (u32 i = 0; i < m_swapchain->get_swap_image_count(); ++i)
@@ -300,7 +303,13 @@ void VKGSRender::frame_context_cleanup(vk::frame_context_t *ctx)
 	ensure(ctx->swap_command_buffer);
 
 	// Perform hard swap here
-	const bool frame_finished = ctx->swap_command_buffer->wait(FRAME_PRESENT_TIMEOUT) == VK_SUCCESS;
+	bool frame_finished;
+	{
+#ifdef LIBRETRO_CORE
+		libretro_metrics::scope timing(libretro_metrics::counter::fence_wait);
+#endif
+		frame_finished = ctx->swap_command_buffer->wait(FRAME_PRESENT_TIMEOUT) == VK_SUCCESS;
+	}
 	if (!frame_finished)
 	{
 		// Lost surface/device, release swapchain
@@ -782,6 +791,10 @@ void VKGSRender::flip(const rsx::display_flip_info_t& info)
 		}
 	}
 
+#ifdef LIBRETRO_CORE
+	if (libretro_swapchain && libretro_metrics::enabled())
+		libretro_metrics::add(libretro_metrics::counter::acquire, get_system_time() - acquire_start);
+#endif
 	// Confirm that the driver did not silently fail
 	ensure(m_current_frame->present_image != umax);
 

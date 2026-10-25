@@ -7,6 +7,9 @@
 #include "../../display.h"
 #include "../VulkanAPI.h"
 #include "image.h"
+#ifdef LIBRETRO_CORE
+#include "../VKLibretro.h"
+#endif
 #include "util/logs.hpp"
 
 #include <memory>
@@ -26,7 +29,7 @@ namespace vk
 		u32 m_height = 0;
 
 	public:
-		swapchain_image_RPCS3(render_device& dev, const memory_type_mapping& memory_map, u32 width, u32 height);
+		swapchain_image_RPCS3(render_device& dev, const memory_type_mapping& memory_map, u32 width, u32 height, std::span<const u32> shared_queue_families = {});
 
 		void do_dma_transfer(command_buffer& cmd);
 
@@ -182,6 +185,7 @@ namespace vk
 	class swapchain_LIBRETRO : public native_swapchain_base
 	{
 		bool m_hw = false;
+		u32 m_generation = 0;
 		mutable std::mutex m_images_mutex;
 		std::vector<std::unique_ptr<image_view>> m_views;
 
@@ -217,6 +221,25 @@ namespace vk
 			swapchain_images.clear();
 		}
 
+	protected:
+		void init_swapchain_images(render_device& device, u32 count) override
+		{
+#ifdef LIBRETRO_CORE
+			if (m_hw && vk::libretro::frontend_queue_family() != device.get_graphics_queue_family())
+			{
+				const std::array<u32, 2> families{device.get_graphics_queue_family(), vk::libretro::frontend_queue_family()};
+				swapchain_images.resize(count);
+				for (auto& slot : swapchain_images)
+				{
+					slot.second = std::make_unique<swapchain_image_RPCS3>(device, device.get_memory_mapping(), m_width, m_height, families);
+					slot.first = false;
+				}
+				return;
+			}
+#endif
+			native_swapchain_base::init_swapchain_images(device, count);
+		}
+
 	public:
 		swapchain_LIBRETRO(physical_device& gpu, u32 present_queue, u32 graphics_queue, u32 transfer_queue, bool hw = false)
 			: native_swapchain_base(gpu, present_queue, graphics_queue, transfer_queue), m_hw(hw)
@@ -232,6 +255,13 @@ namespace vk
 
 			std::lock_guard lock(m_images_mutex);
 			retire_images();
+#ifdef LIBRETRO_CORE
+			if (m_hw)
+			{
+				vk::libretro::new_image_generation();
+				m_generation = vk::libretro::image_generation();
+			}
+#endif
 
 			// Without a context two is enough to keep one in flight while the
 			// other is read. With one, the frontend holds the image it shows
@@ -303,10 +333,10 @@ namespace vk
 			return m_hw ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		}
 
-		void release_image(u32 index)
+		void release_image(u32 index, u32 generation = umax)
 		{
 			std::lock_guard lock(m_images_mutex);
-			if (index < swapchain_images.size())
+			if ((generation == umax || generation == m_generation) && index < swapchain_images.size())
 				swapchain_images[index].first = false;
 		}
 
@@ -320,10 +350,10 @@ namespace vk
 		};
 
 		// What the frontend needs of image `index` for set_image
-		bool get_hw_image(u32 index, hw_image& out) const
+		bool get_hw_image(u32 index, u32 generation, hw_image& out) const
 		{
 			std::lock_guard lock(m_images_mutex);
-			if (!m_hw || index >= m_views.size())
+			if (!m_hw || generation != m_generation || index >= m_views.size())
 				return false;
 			out.image = swapchain_images[index].second->value;
 			out.view = m_views[index]->value;
@@ -346,10 +376,11 @@ namespace vk
 
 		// Once the frontend shows an image made after the retired ones, and has
 		// stopped sampling the ones it showed before
-		void free_retired()
+		void free_retired(u32 generation = umax)
 		{
 			std::lock_guard lock(m_images_mutex);
-			free_retired_locked();
+			if (generation == umax || generation == m_generation)
+				free_retired_locked();
 		}
 
 		bool has_retired() const
