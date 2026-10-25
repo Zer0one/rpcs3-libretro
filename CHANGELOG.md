@@ -4,6 +4,8 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+- Release tags now trigger remote Linux, Windows, macOS and Android builds. All seven packages must pass source-identity and checksum checks before automatic publication as an ordinary Latest release; an existing tag can be rebuilt with current CI tools without moving the source tag. Packages retain canonical core names and include matching metadata.
+
 ## v0.1.0.1 — 2026-10-25
 
 - macOS: new GPU option MoltenVK Queue Submission selects Sync (default) or experimental Async for the core's Vulkan instance. Save the selection and restart RetroArch to apply it; changing the option does not alter the driver's global defaults.

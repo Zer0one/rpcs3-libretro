@@ -1,0 +1,91 @@
+name: Build And Publish Release
+run-name: Release ${{ inputs.release_tag || github.ref_name }}
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing vMAJOR.MINOR.PATCH.BUILD tag; empty runs verification builds only'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.release_tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Validate Release Source
+    runs-on: ubuntu-24.04
+    outputs:
+      source_commit: ${{ steps.source.outputs.source_commit }}
+      release_tag: ${{ steps.source.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate immutable tag and source ancestry
+        id: source
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || '' }}
+        run: python3 .ci/package-release.py plan --tag "$RELEASE_TAG"
+
+  build:
+    name: Remote Core Builds
+    needs: prepare
+    uses: ./.github/workflows/libretro.yml
+    with:
+      platforms: all
+      keep_symbols: false
+      source_ref: ${{ needs.prepare.outputs.source_commit }}
+      release_tag: ${{ needs.prepare.outputs.release_tag }}
+      release_build: true
+
+  publish:
+    name: Publish Verified Packages
+    needs: [prepare, build]
+    if: needs.prepare.outputs.release_tag != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: rpcs3_libretro-*
+          path: release/downloads
+      - name: Verify every platform package and source commit
+        run: |
+          python3 .ci/package-release.py assemble \
+            --directory release/downloads --tag "$RELEASE_TAG" \
+            --output release/packages --notes release/NOTES.md
+      - name: Upload verified assets and check server digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release/packages/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release/packages/* --verify-tag \
+              --title "RPCS3 Libretro $RELEASE_TAG" --notes-file release/NOTES.md --draft
+          fi
+          gh release view "$RELEASE_TAG" --json assets > release/uploaded.json
+          python3 .ci/package-release.py verify-upload \
+            --directory release/packages --metadata release/uploaded.json
+      - name: Publish as an ordinary Latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "$RELEASE_TAG" --notes-file release/NOTES.md \
+            --draft=false --prerelease=false --latest

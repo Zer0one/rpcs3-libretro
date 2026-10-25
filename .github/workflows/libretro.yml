@@ -4,9 +4,7 @@ defaults:
   run:
     shell: bash
 
-# Test builds only, started by hand. The core is nowhere near ready to be
-# published on every push, and a full RPCS3 build is not something to spend a
-# runner on unless someone asked for it.
+# Shared build matrix for manual verification and tag-based releases.
 on:
   workflow_dispatch:
     inputs:
@@ -15,23 +13,44 @@ on:
         type: string
         default: all
       keep_symbols:
-        description: 'Leave the symbol table in the core (for backtraces)'
+        description: 'Leave symbols in the core for backtraces'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      platforms:
+        type: string
+        default: all
+      keep_symbols:
+        type: boolean
+        default: false
+      source_ref:
+        description: 'Exact source commit validated by the release workflow'
+        type: string
+        required: true
+      release_tag:
+        type: string
+        default: ''
+      release_build:
+        description: 'Require every selected platform to succeed'
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 concurrency:
-  group: ${{ github.ref }}-libretro
+  group: build-libretro-${{ inputs.source_ref || github.ref }}
   cancel-in-progress: true
 
 env:
   BUILD_ARTIFACTSTAGINGDIRECTORY: ${{ github.workspace }}/artifacts/
 
 # Test builds can be limited to the platforms their testers use: the
-# platforms input (workflow_dispatch) lists them. Pushes and "all" build
-# everything.
+# platforms input lists them. The release caller selects all platforms.
 jobs:
   Build:
-    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'linux')
+    if: inputs.platforms == 'all' || contains(inputs.platforms, 'linux')
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +63,7 @@ jobs:
             docker_img: "rpcs3/rpcs3-ci-jammy-aarch64:2.1"
     name: libretro core ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 240
     env:
       CCACHE_DIR: ${{ github.workspace }}/ccache
       ARTDIR: "/root/artifacts"
@@ -53,12 +73,26 @@ jobs:
       KEEP_SYMBOLS: ${{ inputs.keep_symbols && '1' || '0' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@main
+        uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.source_ref || github.ref }}
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out current build and release tools
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: .ci
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
 
       - name: Restore build Ccache
-        uses: actions/cache/restore@main
+        uses: actions/cache/restore@v5
         id: restore-build-ccache
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -75,7 +109,7 @@ jobs:
             -v ${{ env.CCACHE_DIR }}:/root/.ccache \
             -v ${{ env.BUILD_ARTIFACTSTAGINGDIRECTORY }}:${{ env.ARTDIR }} \
             ${{ matrix.docker_img }} \
-            /rpcs3/.ci/build-libretro.sh
+            /rpcs3/.release-tools/.ci/build-libretro.sh
 
       - name: Name the core after the architecture it is for
         run: |
@@ -114,25 +148,33 @@ jobs:
       - name: Add the core info file
         run: cp rpcs3/libretro/rpcs3_libretro.info "${{ env.BUILD_ARTIFACTSTAGINGDIRECTORY }}/"
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@main
+      - name: Package and verify the canonical core
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python3 .release-tools/.ci/package-release.py package \
+            --directory "${{ env.BUILD_ARTIFACTSTAGINGDIRECTORY }}" --target "linux-${{ matrix.arch }}" \
+            --tag "$RELEASE_TAG" --output ci-packages
+
+      - name: Upload verified package
+        uses: actions/upload-artifact@v7
         with:
           name: rpcs3_libretro-linux-${{ matrix.arch }}
-          path: |
-            ${{ env.BUILD_ARTIFACTSTAGINGDIRECTORY }}/*.so
-            ${{ env.BUILD_ARTIFACTSTAGINGDIRECTORY }}/*.info
+          path: ci-packages/*.zip
+          if-no-files-found: error
+          retention-days: 14
           compression-level: 0
 
       - name: Save build Ccache
         if: always()
-        uses: actions/cache/save@main
+        uses: actions/cache/save@v5
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ steps.restore-build-ccache.outputs.cache-primary-key }}
 
   Windows:
-    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'windows')
-    # Experimental, and allowed to fail. Built under MSYS2's clang64 rather
+    if: inputs.platforms == 'all' || contains(inputs.platforms, 'windows')
+    # Manual test builds may tolerate failure; a release requires success. Built under MSYS2's clang64 rather
     # than MSVC: the core exists only as a CMake target, so rpcs3.sln - the way
     # upstream builds Windows - is no use, and CMake with MSVC gets no further
     # because the LLVM on the runner image is the client distribution, with no
@@ -141,7 +183,8 @@ jobs:
     # .ci/build-windows-clang.sh already uses for the application.
     name: libretro core windows-x64 (experimental)
     runs-on: windows-2025
-    continue-on-error: true
+    timeout-minutes: 240
+    continue-on-error: ${{ !inputs.release_build }}
     env:
       KEEP_SYMBOLS: ${{ inputs.keep_symbols && '1' || '0' }}
     defaults:
@@ -149,9 +192,23 @@ jobs:
         shell: msys2 {0}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@main
+        uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.source_ref || github.ref }}
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out current build and release tools
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: .ci
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
 
       - name: Setup msys2
         uses: msys2/setup-msys2@v2
@@ -180,24 +237,33 @@ jobs:
             p7zip
 
       - name: Build
-        run: .ci/build-windows-clang-libretro.sh
+        run: sh .release-tools/.ci/build-windows-clang-libretro.sh
 
       - name: Add the core info file
         shell: bash
         run: cp rpcs3/libretro/rpcs3_libretro.info artifacts/
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@main
+      - name: Package and verify the canonical core
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python3 .release-tools/.ci/package-release.py package \
+            --directory "artifacts" --target "windows-x86_64" \
+            --tag "$RELEASE_TAG" --output ci-packages
+
+      - name: Upload verified package
+        uses: actions/upload-artifact@v7
         with:
           name: rpcs3_libretro-windows-x86_64
-          path: |
-            artifacts/*.dll
-            artifacts/*.info
+          path: ci-packages/*.zip
+          if-no-files-found: error
+          retention-days: 14
           compression-level: 0
 
   Android:
-    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'android')
-    # Experimental, and allowed to fail, like Windows. Android is reachable in
+    if: inputs.platforms == 'all' || contains(inputs.platforms, 'android')
+    # Manual tests may tolerate failure; Android release packages are mandatory. Android is reachable in
     # principle - 3rdparty/llvm/CMakeLists.txt has an if(ANDROID) branch that
     # builds LLVM for AArch64 with an Android triple - but cross-building LLVM
     # is far larger than the core it serves and does not belong in a test run.
@@ -211,7 +277,8 @@ jobs:
     # when it does, nobody should expect to play on it.
     name: libretro core android-${{ matrix.name }} (experimental)
     runs-on: ubuntu-24.04
-    continue-on-error: true
+    timeout-minutes: 360
+    continue-on-error: ${{ !inputs.release_build }}
     strategy:
       fail-fast: false
       matrix:
@@ -229,9 +296,23 @@ jobs:
             ffextra: --disable-x86asm
     steps:
       - name: Checkout repository
-        uses: actions/checkout@main
+        uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.source_ref || github.ref }}
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out current build and release tools
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: .ci
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
 
       # Everything, LLVM included. It cannot be left out after all: the AArch64
       # CPU backend is compiled for every arm64 target and uses llvm:: types
@@ -302,7 +383,7 @@ jobs:
             -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH
 
       - name: Build
-        run: cmake --build build --target rpcs3_libretro
+        run: cmake --build build --target rpcs3_libretro --parallel 2
 
       - name: Collect
         run: |
@@ -326,17 +407,25 @@ jobs:
       - name: Add the core info file
         run: cp rpcs3/libretro/rpcs3_libretro.info artifacts/
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@main
+      - name: Package and verify the canonical core
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python3 .release-tools/.ci/package-release.py package \
+            --directory "artifacts" --target "android-${{ matrix.name }}" \
+            --tag "$RELEASE_TAG" --output ci-packages
+
+      - name: Upload verified package
+        uses: actions/upload-artifact@v7
         with:
           name: rpcs3_libretro-android-${{ matrix.name }}
-          path: |
-            artifacts/*.so
-            artifacts/*.info
+          path: ci-packages/*.zip
+          if-no-files-found: error
+          retention-days: 14
           compression-level: 0
 
   MacOS:
-    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'macos')
+    if: inputs.platforms == 'all' || contains(inputs.platforms, 'macos')
     # As upstream's macOS build, with LLVM's own clang rather than Apple's:
     # Apple clang does not take fmt::throw_exception's [[noreturn]] constructor
     # as the end of a function, and -Werror=return-type fails all over. Clang,
@@ -345,6 +434,7 @@ jobs:
     # Each architecture on its own runner, so Homebrew's libraries are its own.
     name: libretro core macos-${{ matrix.arch }} (experimental)
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -355,17 +445,31 @@ jobs:
             runner: macos-15-intel
     steps:
       - name: Checkout repository
-        uses: actions/checkout@main
+        uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.source_ref || github.ref }}
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out current build and release tools
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: .ci
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
 
       - name: Submodules
         run: git submodule -q update --init --depth 1 $(awk '/path/ && !/llvm/ && !/opencv/ && !/libsdl-org/ && !/zlib/ { print $3 }' .gitmodules)
 
       - name: Dependencies
         run: |
-          brew install ninja llvm@21 glew molten-vk vulkan-headers >/dev/null
-          echo "LLVM=$(brew --prefix llvm@21)" >> $GITHUB_ENV
+          brew install ninja llvm@22 glew molten-vk vulkan-headers >/dev/null
+          echo "LLVM=$(brew --prefix llvm@22)" >> $GITHUB_ENV
           echo "BREW=$(brew --prefix)" >> $GITHUB_ENV
 
       - name: Configure
@@ -389,7 +493,7 @@ jobs:
             -DVulkan_LIBRARY=$BREW/lib/libMoltenVK.dylib
 
       - name: Build
-        run: cmake --build build --target rpcs3_libretro
+        run: cmake --build build --target rpcs3_libretro --parallel 2
 
       - name: Collect
         run: |
@@ -402,7 +506,7 @@ jobs:
           # RetroArch carries in its Frameworks, and zstd (LLVM's) goes next to
           # the core
           MVK=$(otool -L $CORE | awk '/libMoltenVK/ {print $1}')
-          [ -n "$MVK" ] && install_name_tool -change "$MVK" @rpath/libMoltenVK.dylib $CORE
+          [ -n "$MVK" ] && install_name_tool -change "$MVK" @rpath/MoltenVK $CORE
           ZSTD=$(otool -L $CORE | awk '/libzstd/ {print $1}')
           if [ -n "$ZSTD" ]; then
             # One per architecture, named after it, so the two never meet
@@ -414,16 +518,25 @@ jobs:
             codesign -f -s - artifacts/$Z
           fi
           codesign -f -s - $CORE
+          codesign --verify --strict $CORE
           cp rpcs3/libretro/rpcs3_libretro.info artifacts/
           otool -L $CORE
           if otool -L $CORE | grep -q '/opt/homebrew\|/usr/local/'; then echo "still linked to Homebrew"; exit 1; fi
           ls -la artifacts
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@main
+      - name: Package and verify the canonical core
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python3 .release-tools/.ci/package-release.py package \
+            --directory "artifacts" --target "macos-${{ matrix.arch }}" \
+            --tag "$RELEASE_TAG" --output ci-packages
+
+      - name: Upload verified package
+        uses: actions/upload-artifact@v7
         with:
           name: rpcs3_libretro-macos-${{ matrix.arch }}
-          path: |
-            artifacts/*.dylib
-            artifacts/*.info
+          path: ci-packages/*.zip
+          if-no-files-found: error
+          retention-days: 14
           compression-level: 0
