@@ -1,6 +1,6 @@
 {
     "return_code": 0,
-    "timestamp": 1791220835,
+    "timestamp": 1792728529,
     "games": {
         "BCAS20014": {
             "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle"
@@ -76,6 +76,9 @@
         },
         "BCAS25014": {
             "config": "Core:\n  Accurate RSX reservation access: true\nVideo:\n  Handle RSX Memory Tiling: true\n  Read Color Buffers: true\n  Write Color Buffers: true\n  Write Depth Buffer: true\n  Accurate ZCULL stats: true\n  Relaxed ZCULL Sync: false"
+        },
+        "BCAS25016": {
+            "config": "Core:\n  Accurate RSX reservation access: true\n  Sleep Timers Accuracy: As Host\nVideo:\n  Shader Precision: Ultra\n  Write Color Buffers: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: false"
         },
         "BCAS25017": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -761,6 +764,9 @@
         "BLAS50710": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "BLAS50723": {
+            "config": "Audio:\n  Enable Buffering: false"
+        },
         "BLAS50770": {
             "config": "Video:\n  Frame limit: 30\n  Write Color Buffers: true"
         },
@@ -797,6 +803,9 @@
         "BLES00026": {
             "config": "Video:\n  Disable Vertex Cache: true\n  Write Color Buffers: true"
         },
+        "BLES00028": {
+            "config": "Core:\n  SPU MMIO Delay Enabled: true"
+        },
         "BLES00035": {
             "config": "Video:\n  Shader Precision: High"
         },
@@ -804,7 +813,7 @@
             "config": "Video:\n  Shader Precision: High"
         },
         "BLES00038": {
-            "config": "Core:\n  SPU Decoder: Interpreter (static)"
+            "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle\n  MFC Commands Shuffling Limit: 1"
         },
         "BLES00039": {
             "config": "Video:\n  Frame limit: Auto\n  Write Color Buffers: true\nInput\/Output:\n  Keyboard: Basic"
@@ -974,6 +983,9 @@
         "BLES00296": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "BLES00316": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
+        },
         "BLES00322": {
             "config": "Video:\n  Read Color Buffers: true"
         },
@@ -1034,6 +1046,9 @@
         "BLES00392": {
             "config": "Video:\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
         },
+        "BLES00397": {
+            "config": "Core:\n  SPU MMIO Delay Enabled: true"
+        },
         "BLES00399": {
             "config": "Video:\n  Write Color Buffers: true"
         },
@@ -1083,7 +1098,7 @@
             "config": "Video:\n  Write Color Buffers: true"
         },
         "BLES00553": {
-            "config": "Video:\n  Read Color Buffers: true"
+            "config": "Video:\n  Read Color Buffers: true\nInput\/Output:\n  Mouse: Null"
         },
         "BLES00562": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -1235,6 +1250,9 @@
         "BLES00867": {
             "config": "Core:\n  Accurate RSX reservation access: true\nVideo:\n  Write Color Buffers: true"
         },
+        "BLES00875": {
+            "config": "Video:\n  Write Color Buffers: true"
+        },
         "BLES00876": {
             "config": "Video:\n  Strict Rendering Mode: true"
         },
@@ -1255,6 +1273,9 @@
         },
         "BLES00896": {
             "config": "Video:\n  Disable Blit Engine Upscaling: true"
+        },
+        "BLES00901": {
+            "config": "Video:\n  Write Color Buffers: true"
         },
         "BLES00909": {
             "config": "Core:\n  PPU Decoder: Interpreter (static)\nVideo:\n  Strict Rendering Mode: true"
@@ -1340,8 +1361,14 @@
         "BLES01092": {
             "config": "Core:\n  Accurate RSX reservation access: true"
         },
+        "BLES01102": {
+            "config": "Core:\n  PPU Decoder: Interpreter (static)"
+        },
         "BLES01105": {
             "config": "Video:\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
+        },
+        "BLES01112": {
+            "config": "Video:\n  Write Color Buffers: true\n  Read Color Buffers: true"
         },
         "BLES01114": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -1404,7 +1431,7 @@
             "config": "Video:\n  Read Color Buffers: true\n  Write Color Buffers: true"
         },
         "BLES01236": {
-            "config": "Core:\n  SPU Decoder: Interpreter (static)\nVideo:\n  Write Color Buffers: true"
+            "config": "Core:\n  MFC Commands Shuffling Limit: 1"
         },
         "BLES01242": {
             "config": "Core:\n  SPU Block Size: Mega\n  SPU XFloat Accuracy: Relaxed\nVideo:\n  Strict Rendering Mode: true"
@@ -1541,6 +1568,12 @@
         "BLES01472": {
             "config": "Video:\n  Read Color Buffers: true\n  Write Color Buffers: true"
         },
+        "BLES01475": {
+            "config": "Video:\n  Write Color Buffers: true"
+        },
+        "BLES01478": {
+            "config": "Video:\n  Write Color Buffers: true"
+        },
         "BLES01487": {
             "config": "Video:\n  Frame limit: 60"
         },
@@ -1561,6 +1594,9 @@
         },
         "BLES01525": {
             "config": "Video:\n  Write Color Buffers: true"
+        },
+        "BLES01527": {
+            "config": "Core:\n  MFC Commands Shuffling Limit: 1"
         },
         "BLES01548": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -1754,6 +1790,9 @@
         "BLES01863": {
             "config": "Video:\n  Frame limit: Auto"
         },
+        "BLES01864": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
         "BLES01867": {
             "config": "Core:\n  SPU XFloat Accuracy: Accurate"
         },
@@ -1788,7 +1827,7 @@
             "config": "Video:\n  Read Color Buffers: true\n  Write Color Buffers: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true\nCore:\n  Sleep Timers Accuracy: As Host"
         },
         "BLES01897": {
-            "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle\nVideo:\n  Read Color Buffers: true"
+            "config": "Video:\n  Read Color Buffers: true\n  Write Color Buffers: true"
         },
         "BLES01898": {
             "config": "Video:\n  Frame limit: Auto\n  Write Color Buffers: true\nInput\/Output:\n  Keyboard: Basic\nCore:\n  PPU Decoder: Interpreter (static)"
@@ -1836,7 +1875,7 @@
             "config": "Video:\n  Handle RSX Memory Tiling: true\n  Write Color Buffers: true"
         },
         "BLES02011": {
-            "config": "Video:\n  Allow Host GPU Labels: true\n  MSAA: Disabled\n  Write Color Buffers: true"
+            "config": "Video:\n  Allow Host GPU Labels: true\n  MSAA: Disabled\n  Write Color Buffers: true\nCore:\n  MFC Commands Shuffling Limit: 1"
         },
         "BLES02012": {
             "config": "Video:\n  Allow Host GPU Labels: true\n  MSAA: Disabled\n  Write Color Buffers: true"
@@ -1943,6 +1982,9 @@
         "BLET70061": {
             "config": "Video:\n  Vulkan:\n    Asynchronous Texture Streaming: true\n  Multithreaded RSX: true\n  Write Color Buffers: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true\nCore:\n  RSX FIFO Fetch Accuracy: Ordered & Atomic\n  Sleep Timers Accuracy: As Host"
         },
+        "BLJM60006": {
+            "config": "Core:\n  SPU MMIO Delay Enabled: true"
+        },
         "BLJM60027": {
             "config": "Video:\n  MSAA: Disabled"
         },
@@ -1980,6 +2022,9 @@
             "config": "Video:\n  Vulkan:\n    Asynchronous Texture Streaming: false\n  Write Color Buffers: true"
         },
         "BLJM60178": {
+            "config": "Video:\n  Write Color Buffers: true"
+        },
+        "BLJM60180": {
             "config": "Video:\n  Write Color Buffers: true"
         },
         "BLJM60187": {
@@ -2094,7 +2139,7 @@
             "config": "Core:\n  Accurate RSX reservation access: true\nVideo:\n  Allow Host GPU Labels: true\n  Write Color Buffers: true\n  Write Depth Buffer: true"
         },
         "BLJM60589": {
-            "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle\nVideo:\n  Read Color Buffers: true"
+            "config": "Video:\n  Read Color Buffers: true\n  Write Color Buffers: true"
         },
         "BLJM61001": {
             "config": "Core:\n  Disable SPU GETLLAR Spin Optimization: true\nVideo:\n  Read Color Buffers: true"
@@ -2198,6 +2243,9 @@
         "BLJM90001": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "BLJS10001": {
+            "config": "VFS:\n  Emulate BD-ROM Read Speed: true\n  Emulate HDD Read Speed: true\nVideo:\n  Write Color Buffers: true"
+        },
         "BLJS10013": {
             "config": "Video:\n  Disable Vertex Cache: true\n  Multithreaded RSX: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true\nCore:\n  SPU XFloat Accuracy: Relaxed"
         },
@@ -2206,6 +2254,9 @@
         },
         "BLJS10023": {
             "config": "Video:\n  Anisotropic Filter Override: 0\n  Emulate Special Depth Comparison: true\nCore:\n  Libraries Control:\n    - libvdec.sprx:lle"
+        },
+        "BLJS10026": {
+            "config": "Video:\n  Write Color Buffers: true"
         },
         "BLJS10034": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -2233,6 +2284,9 @@
         },
         "BLJS10091": {
             "config": "Video:\n  Write Color Buffers: true"
+        },
+        "BLJS10115": {
+            "config": "Video:\n  Read Color Buffers: true\n  Write Color Buffers: true\n  Write Depth Buffer: true"
         },
         "BLJS10120": {
             "config": "Video:\n  Frame limit: PS3 Native"
@@ -2282,6 +2336,9 @@
         "BLJS10226": {
             "config": "Video:\n  Anisotropic Filter Override: 0\n  Frame limit: 60"
         },
+        "BLJS10231": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
         "BLJS10238": {
             "config": "Video:\n  Write Color Buffers: true"
         },
@@ -2327,6 +2384,9 @@
         "BLUD80018": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "BLUD80019": {
+            "config": "Video:\n  Write Color Buffers: true"
+        },
         "BLUS30001": {
             "config": "VFS:\n  Emulate BD-ROM Read Speed: true\n  Emulate HDD Read Speed: true\nVideo:\n  Write Color Buffers: true"
         },
@@ -2338,6 +2398,9 @@
         },
         "BLUS30007": {
             "config": "Video:\n  Write Color Buffers: true"
+        },
+        "BLUS30008": {
+            "config": "Core:\n  SPU MMIO Delay Enabled: true"
         },
         "BLUS30009": {
             "config": "Video:\n  Resolution: 1920x1080"
@@ -2355,7 +2418,7 @@
             "config": "Video:\n  Disable Vertex Cache: true\n  Write Color Buffers: true"
         },
         "BLUS30022": {
-            "config": "Core:\n  SPU Decoder: Interpreter (static)"
+            "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle"
         },
         "BLUS30024": {
             "config": "Video:\n  Disable Vertex Cache: true\n  Read Color Buffers: true\n  Write Color Buffers: true\nCore:\n  Libraries Control:\n    - libvdec.sprx:lle"
@@ -2507,6 +2570,9 @@
         "BLUS30161": {
             "config": "Video:\n  Frame limit: PS3 Native\n  Write Color Buffers: true"
         },
+        "BLUS30166": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
+        },
         "BLUS30178": {
             "config": "Video:\n  Allow Host GPU Labels: true\n  Write Color Buffers: true"
         },
@@ -2539,6 +2605,9 @@
         },
         "BLUS30201": {
             "config": "Video:\n  Allow Host GPU Labels: true\n  Frame limit: PS3 Native\n  Read Color Buffers: true"
+        },
+        "BLUS30203": {
+            "config": "Core:\n  SPU MMIO Delay Enabled: true"
         },
         "BLUS30215": {
             "config": "Audio:\n  Enable Buffering: false\nVideo:\n  Write Color Buffers: true"
@@ -2601,7 +2670,7 @@
             "config": "Video:\n  Write Color Buffers: true"
         },
         "BLUS30331": {
-            "config": "Video:\n  Read Color Buffers: true"
+            "config": "Video:\n  Read Color Buffers: true\nInput\/Output:\n  Mouse: Null"
         },
         "BLUS30342": {
             "config": "Video:\n  MSAA: Disabled\n  Write Color Buffers: true"
@@ -2720,7 +2789,13 @@
         "BLUS30489": {
             "config": "Video:\n  Write Color Buffers: true\n  Write Depth Buffer: true"
         },
+        "BLUS30490": {
+            "config": "Video:\n  Write Color Buffers: true"
+        },
         "BLUS30491": {
+            "config": "Video:\n  Write Color Buffers: true"
+        },
+        "BLUS30500": {
             "config": "Video:\n  Write Color Buffers: true"
         },
         "BLUS30501": {
@@ -2839,6 +2914,9 @@
         },
         "BLUS30633": {
             "config": "Video:\n  Read Depth Buffer: true\n  Write Depth Buffer: true"
+        },
+        "BLUS30639": {
+            "config": "Core:\n  PPU Decoder: Interpreter (static)"
         },
         "BLUS30641": {
             "config": "Video:\n  Renderer: OpenGL"
@@ -2980,6 +3058,9 @@
         },
         "BLUS30882": {
             "config": "Video:\n  Frame limit: PS3 Native\n  Write Color Buffers: true"
+        },
+        "BLUS30888": {
+            "config": "Video:\n  Write Color Buffers: true"
         },
         "BLUS30898": {
             "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle\n  SPU Decoder: Interpreter (static)"
@@ -3128,6 +3209,9 @@
         "BLUS31168": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "BLUS31172": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
         "BLUS31175": {
             "config": "Video:\n  Anisotropic Filter Override: 0"
         },
@@ -3174,7 +3258,7 @@
             "config": "Video:\n  Read Color Buffers: true\n  Strict Rendering Mode: true\n  Write Color Buffers: true"
         },
         "BLUS31212": {
-            "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle\nVideo:\n  Read Color Buffers: true"
+            "config": "Video:\n  Read Color Buffers: true\n  Write Color Buffers: true"
         },
         "BLUS31213": {
             "config": "Video:\n  Frame limit: 60"
@@ -3308,6 +3392,9 @@
         "BLUS31612": {
             "config": "Core:\n  PPU Decoder: Interpreter (static)"
         },
+        "BLUS41038": {
+            "config": "Core:\n  SPU XFloat Accuracy: Accurate"
+        },
         "BLUS41042": {
             "config": "Video:\n  Anisotropic Filter Override: 0"
         },
@@ -3319,6 +3406,9 @@
         },
         "MRTC00014": {
             "config": "Core:\n  SPU XFloat Accuracy: Accurate"
+        },
+        "MRTC00016": {
+            "config": "Video:\n  Write Color Buffers: true\n  Read Color Buffers: true"
         },
         "NPEA00003": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -3404,6 +3494,9 @@
         "NPEA00304": {
             "config": "Input\/Output:\n  Move: Fake"
         },
+        "NPEA00307": {
+            "config": "Video:\n  Emulate Special Depth Comparison: true"
+        },
         "NPEA00308": {
             "config": "Video:\n  Resolution: 1920x1080"
         },
@@ -3472,6 +3565,9 @@
         },
         "NPEA00365": {
             "config": "Video:\n  Vulkan:\n    Asynchronous Texture Streaming: true\n  Read Depth Buffer: true\n  Write Color Buffers: true\n  Accurate ZCULL stats: true\n  Relaxed ZCULL Sync: false"
+        },
+        "NPEA00371": {
+            "config": "Video:\n  Vulkan:\n    Asynchronous Texture Streaming: true\n  Multithreaded RSX: true\n  Write Color Buffers: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: false\nCore:\n  SPU Block Size: Mega"
         },
         "NPEA00374": {
             "config": "Audio:\n  Enable Buffering: false\n  Microphone Type: SingStar"
@@ -3953,6 +4049,9 @@
         "NPEB00771": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "NPEB00772": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
+        },
         "NPEB00786": {
             "config": "Video:\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
         },
@@ -4050,7 +4149,7 @@
             "config": "Video:\n  Handle RSX Memory Tiling: true\n  Read Color Buffers: true\n  Write Color Buffers: true"
         },
         "NPEB01096": {
-            "config": "Core:\n  Accurate RSX reservation access: true\nVideo:\n  Allow Host GPU Labels: true\n  Write Color Buffers: true\n  Write Depth Buffer: true"
+            "config": "Core:\n  Accurate RSX reservation access: true\n  MFC Commands Shuffling Limit: 1\nVideo:\n  Allow Host GPU Labels: true\n  Write Color Buffers: true\n  Write Depth Buffer: true"
         },
         "NPEB01099": {
             "config": "Core:\n  PPU Decoder: Interpreter (static)\nVideo:\n  Read Color Buffers: true\n  Write Color Buffers: true"
@@ -4137,7 +4236,7 @@
             "config": "Video:\n  Frame limit: PS3 Native"
         },
         "NPEB01322": {
-            "config": "Video:\n  Write Color Buffers: true"
+            "config": "Core:\n  MFC Commands Shuffling Limit: 1\nVideo:\n  Write Color Buffers: true"
         },
         "NPEB01327": {
             "config": "Video:\n  Anisotropic Filter Override: 0"
@@ -4174,6 +4273,12 @@
         },
         "NPEB01386": {
             "config": "Core:\n  PPU Decoder: Interpreter (static)\nVideo:\n  Read Color Buffers: true\n  Write Color Buffers: true"
+        },
+        "NPEB01388": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
+        "NPEB01389": {
+            "config": "Video:\n  Frame limit: PS3 Native"
         },
         "NPEB01391": {
             "config": "Video:\n  Read Color Buffers: true\n  Strict Rendering Mode: true\n  Write Color Buffers: true"
@@ -4313,6 +4418,9 @@
         "NPEB02269": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "NPEB02321": {
+            "config": "Input\/Output:\n  Mouse: Null"
+        },
         "NPEB02436": {
             "config": "Video:\n  Write Color Buffers: true"
         },
@@ -4387,6 +4495,9 @@
         },
         "NPEB90099": {
             "config": "Video:\n  Write Color Buffers: true"
+        },
+        "NPEB90102": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
         },
         "NPEB90106": {
             "config": "Video:\n  Frame limit: PS3 Native"
@@ -4982,6 +5093,9 @@
         "NPJA90063": {
             "config": "Video:\n  Emulate Special Depth Comparison: true\n  MSAA: Disabled\n  Write Color Buffers: true\n  Write Depth Buffer: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: false\nCore:\n  SPU Block Size: Mega"
         },
+        "NPJA90067": {
+            "config": "Video:\n  Disable Vertex Cache: true"
+        },
         "NPJA90090": {
             "config": "Video:\n  Write Color Buffers: true"
         },
@@ -5096,6 +5210,18 @@
         "NPJB00273": {
             "config": "Video:\n  Anisotropic Filter Override: 0\n  Write Color Buffers: true"
         },
+        "NPJB00416": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
+        "NPJB00420": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
+        "NPJB00421": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
+        "NPJB00431": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
+        },
         "NPJB00435": {
             "config": "Audio:\n  Enable Buffering: false"
         },
@@ -5125,6 +5251,9 @@
         },
         "NPJB00752": {
             "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle\nVideo:\n  Write Color Buffers: true"
+        },
+        "NPJB00759": {
+            "config": "Input\/Output:\n  Mouse: Null"
         },
         "NPJB00769": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -5186,6 +5315,9 @@
         "NPJB90156": {
             "config": "Video:\n  Frame limit: PS3 Native"
         },
+        "NPJB90159": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
+        },
         "NPJB90162": {
             "config": "Video:\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true\n  Vulkan:\n    Asynchronous Texture Streaming: true\n  Frame limit: PS3 Native\n  MSAA: Disabled\nCore:\n  SPU XFloat Accuracy: Relaxed\n  Sleep Timers Accuracy: As Host\n  Max SPURS Threads: 3"
         },
@@ -5200,6 +5332,9 @@
         },
         "NPJB90302": {
             "config": "Video:\n  Frame limit: PS3 Native"
+        },
+        "NPJB90345": {
+            "config": "Core:\n  SPU Block Size: Mega"
         },
         "NPJB90434": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -5795,6 +5930,9 @@
         "NPUB30392": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "NPUB30393": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
+        },
         "NPUB30418": {
             "config": "Video:\n  Write Color Buffers: true"
         },
@@ -6119,6 +6257,12 @@
         "NPUB31188": {
             "config": "Video:\n  Anisotropic Filter Override: 0"
         },
+        "NPUB31193": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
+        "NPUB31194": {
+            "config": "Video:\n  Frame limit: PS3 Native"
+        },
         "NPUB31200": {
             "config": "Video:\n  Write Color Buffers: true"
         },
@@ -6311,6 +6455,9 @@
         "NPUB31720": {
             "config": "Video:\n  Write Color Buffers: true"
         },
+        "NPUB31749": {
+            "config": "Input\/Output:\n  Mouse: Null"
+        },
         "NPUB31837": {
             "config": "Core:\n  PPU Decoder: Interpreter (static)\nVideo:\n  Write Color Buffers: true"
         },
@@ -6328,6 +6475,9 @@
         },
         "NPUB31864": {
             "config": "Core:\n  PPU Decoder: Interpreter (static)"
+        },
+        "NPUB50101": {
+            "config": "Video:\n  Frame limit: PS3 Native"
         },
         "NPUB90003": {
             "config": "Video:\n  Resolution: 1920x1080"
@@ -6427,6 +6577,9 @@
         },
         "NPUB90151": {
             "config": "Video:\n  Write Color Buffers: true"
+        },
+        "NPUB90156": {
+            "config": "VFS:\n  Emulate HDD Read Speed: true"
         },
         "NPUB90167": {
             "config": "Audio:\n  Enable Buffering: false\nVideo:\n  Write Color Buffers: true"

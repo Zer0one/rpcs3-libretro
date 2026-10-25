@@ -19,6 +19,7 @@ add_library(rpcs3_emu STATIC
     perf_monitor.cpp
     IPC_config.cpp
     IPC_socket.cpp
+    Io/SkylanderPortalIPC_config.cpp
 )
 
 if(USE_LTO)
@@ -416,6 +417,7 @@ target_sources(rpcs3_emu PRIVATE
     Io/GHLtar.cpp
     Io/GunCon3.cpp
     Io/Infinity.cpp
+    Io/wiimote_config.cpp
     Io/interception.cpp
     Io/KamenRider.cpp
     Io/KeyboardHandler.cpp
@@ -433,6 +435,7 @@ target_sources(rpcs3_emu PRIVATE
     Io/RB3MidiKeyboard.cpp
     Io/recording_config.cpp
     Io/Skylander.cpp
+    Io/SkylanderPortalIPC.cpp
     Io/TopShotElite.cpp
     Io/TopShotFearmaster.cpp
     Io/Turntable.cpp
@@ -445,6 +448,7 @@ target_sources(rpcs3_emu PRIVATE
 # Np
 target_sources(rpcs3_emu PRIVATE
     NP/pb_helpers.cpp
+    NP/np_avatar.cpp
     NP/np_cache.cpp
     NP/np_gui_cache.cpp
     NP/np_contexts.cpp

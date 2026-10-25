@@ -8,5 +8,5 @@
 #
 # Bump both lines in the same commit that merges upstream; CMake warns when the
 # recorded commit is not an ancestor of the tree being built.
-RPCS3_VERSION=v0.0.43-20243
-RPCS3_COMMIT=ab412d5ddb094322c68b6147688dc9ebea0c95b6
+RPCS3_VERSION=v0.0.43-20400
+RPCS3_COMMIT=f848fd1e12aaba4f7c04bbd8642bfb9b5fae556c

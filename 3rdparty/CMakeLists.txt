@@ -232,7 +232,7 @@ endif()
 
 # GLEW
 add_library(3rdparty_glew INTERFACE)
-if(NOT MSVC AND NOT ANDROID AND NOT APPLE)
+if(NOT WIN32 AND NOT ANDROID AND NOT APPLE)
 	# A libretro core is dropped into a frontend on a machine nobody here
 	# chose, so it must not go out needing libGLEW.so.2.2 by soname -
 	# distributions disagree about that one, and the core then fails to load
@@ -272,9 +272,6 @@ add_subdirectory(miniupnp EXCLUDE_FROM_ALL)
 # RTMIDI
 add_subdirectory(rtmidi EXCLUDE_FROM_ALL)
 
-# OPENCV
-add_subdirectory(opencv EXCLUDE_FROM_ALL)
-
 # FUSION
 add_subdirectory(fusion EXCLUDE_FROM_ALL)
 
@@ -301,6 +298,5 @@ add_library(3rdparty::libcurl ALIAS 3rdparty_libcurl)
 add_library(3rdparty::soundtouch ALIAS soundtouch)
 add_library(3rdparty::miniupnpc ALIAS 3rdparty_miniupnpc)
 add_library(3rdparty::rtmidi ALIAS rtmidi)
-add_library(3rdparty::opencv ALIAS ${OPENCV_TARGET})
 add_library(3rdparty::fusion ALIAS Fusion)
 
