@@ -10,9 +10,19 @@ on:
         description: 'Existing vMAJOR.MINOR.PATCH.BUILD tag; empty runs verification builds only'
         type: string
         default: ''
+      platforms:
+        description: 'Rebuild all platforms, or one group when reusing an earlier release run'
+        type: choice
+        options: [all, linux, windows, macos, android]
+        default: all
+      reuse_run_id:
+        description: 'Completed release run whose verified packages can be reused; empty starts fresh'
+        type: string
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: release-${{ inputs.release_tag || github.ref }}
@@ -25,6 +35,8 @@ jobs:
     outputs:
       source_commit: ${{ steps.source.outputs.source_commit }}
       release_tag: ${{ steps.source.outputs.release_tag }}
+      platforms: ${{ steps.source.outputs.platforms }}
+      reuse_run_id: ${{ steps.source.outputs.reuse_run_id }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -34,14 +46,25 @@ jobs:
         id: source
         env:
           RELEASE_TAG: ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || '' }}
-        run: python3 .ci/package-release.py plan --tag "$RELEASE_TAG"
+          BUILD_PLATFORMS: ${{ inputs.platforms || 'all' }}
+          REUSE_RUN_ID: ${{ inputs.reuse_run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=()
+          if [[ -n "$REUSE_RUN_ID" ]]; then
+            [[ "$REUSE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REUSE_RUN_ID" > previous-run.json
+            previous=(--reuse-run "$REUSE_RUN_ID" --reuse-metadata previous-run.json)
+          fi
+          python3 .ci/package-release.py plan --tag "$RELEASE_TAG" \
+            --platforms "$BUILD_PLATFORMS" "${previous[@]}"
 
   build:
     name: Remote Core Builds
     needs: prepare
     uses: ./.github/workflows/libretro.yml
     with:
-      platforms: all
+      platforms: ${{ needs.prepare.outputs.platforms }}
       keep_symbols: false
       source_ref: ${{ needs.prepare.outputs.source_commit }}
       release_tag: ${{ needs.prepare.outputs.release_tag }}
@@ -54,6 +77,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: read
     env:
       RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
     steps:
@@ -61,6 +85,14 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Restore successful packages from the previous release run
+        if: needs.prepare.outputs.reuse_run_id != ''
+        uses: actions/download-artifact@v7
+        with:
+          pattern: rpcs3_libretro-*
+          path: release/downloads
+          run-id: ${{ needs.prepare.outputs.reuse_run_id }}
+          github-token: ${{ github.token }}
       - uses: actions/download-artifact@v7
         with:
           pattern: rpcs3_libretro-*

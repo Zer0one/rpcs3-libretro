@@ -26,6 +26,15 @@ gh workflow run release.yml --repo Zer0one/rpcs3-libretro --ref main -f release_
 
 The source tag must already exist and name a commit contained in `origin/main`. It is never moved or rewritten. Current CI tools are checked out separately from the tagged emulator source, so a packaging/build-procedure repair can rebuild an existing release without silently substituting newer emulation code. `BUILD_INFO.json` records both the source commit and the workflow commit/run.
 
+If only one platform group fails, select that group in `platforms` and provide the completed release run in `reuse_run_id`. For example, rebuild Windows while retaining the six successful packages:
+
+```sh
+gh workflow run release.yml --repo Zer0one/rpcs3-libretro --ref main \
+  -f release_tag=v0.1.0.1 -f platforms=windows -f reuse_run_id=40225618032
+```
+
+Recovery accepts only a completed run of this repository's release workflow from a commit contained in `origin/main`. The publisher combines previous and rebuilt artifacts, then applies the same mandatory seven-package source/architecture/checksum gates. It does not publish a Windows-only release. Tag pushes always select all platforms.
+
 An empty `release_tag` performs verification builds without publishing. The separate **Build libretro core** manual workflow still permits selected platform groups and symbol retention. Windows/Android failures may be tolerated in that diagnostic workflow; they are mandatory failures in a release run.
 
 ## Publication Gates

@@ -42,13 +42,26 @@ def check_tag(tag: str) -> None:
 
 
 def plan(args: argparse.Namespace) -> None:
+    assert args.platforms in ("all", "linux", "windows", "macos", "android")
+    if args.platforms != "all":
+        assert args.tag and args.reuse_run, "Partial release builds require a tag and a previous release run"
+    if args.reuse_run:
+        assert args.tag and re.fullmatch(r"[1-9][0-9]*", args.reuse_run)
+        previous = json.loads(args.reuse_metadata.read_text())
+        assert str(previous["id"]) == args.reuse_run
+        assert previous["status"] == "completed"
+        assert previous["path"].split("@", 1)[0] == ".github/workflows/release.yml"
+        assert previous["event"] in ("push", "workflow_dispatch")
+        assert previous["head_repository"]["full_name"] == os.environ["GITHUB_REPOSITORY"]
+        subprocess.run(["git", "merge-base", "--is-ancestor", previous["head_sha"], "origin/main"], check=True)
     if args.tag:
         check_tag(args.tag)
         commit = git("rev-parse", "--verify", f"refs/tags/{args.tag}^{{commit}}")
         subprocess.run(["git", "merge-base", "--is-ancestor", commit, "origin/main"], check=True)
     else:
         commit = git("rev-parse", "HEAD")
-    result = {"source_commit": commit, "release_tag": args.tag, "upstream": upstream(commit)}
+    result = {"source_commit": commit, "release_tag": args.tag, "upstream": upstream(commit),
+              "platforms": args.platforms, "reuse_run_id": args.reuse_run}
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as stream:
             for key, value in result.items():
@@ -237,6 +250,9 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
     prepare = subparsers.add_parser("plan")
     prepare.add_argument("--tag", default="")
+    prepare.add_argument("--platforms", default="all")
+    prepare.add_argument("--reuse-run", default="")
+    prepare.add_argument("--reuse-metadata", type=Path)
     prepare.set_defaults(run=plan)
     pack = subparsers.add_parser("package")
     pack.add_argument("--directory", type=Path, required=True)

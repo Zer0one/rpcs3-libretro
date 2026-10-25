@@ -4,6 +4,8 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+- Windows release checks recognize the system LDAP DLL (`WLDAP32.dll`) instead of rejecting a successfully linked core. A failed release can rebuild one platform group and reuse successful packages from a verified earlier release run; all seven packages remain mandatory for publication.
+
 - Release tags now trigger remote Linux, Windows, macOS and Android builds. All seven packages must pass source-identity and checksum checks before automatic publication as an ordinary Latest release; an existing tag can be rebuilt with current CI tools without moving the source tag. Packages retain canonical core names and include matching metadata.
 
 ## v0.1.0.1 — 2026-10-25

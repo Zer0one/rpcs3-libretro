@@ -135,7 +135,8 @@ fi
 # Windows itself, the Vulkan loader and OpenGL is a DLL nobody will have.
 llvm-objdump -p artifacts/rpcs3_libretro.dll | awk '/DLL Name:/ { print $3 }' | sort -u > imports.txt
 cat imports.txt
-if grep -viE '^(api-ms-win-crt-.*|kernel32|user32|gdi32|advapi32|shell32|ole32|oleaut32|ws2_32|iphlpapi|bcrypt|crypt32|pdh|dbghelp|ntdll|winmm|secur32|shlwapi|version|setupapi|opengl32|vulkan-1)\.dll$' imports.txt; then
+# Wldap32 is Windows' LDAP client, used by the statically linked curl.
+if grep -viE '^(api-ms-win-crt-.*|kernel32|user32|gdi32|advapi32|shell32|ole32|oleaut32|ws2_32|iphlpapi|bcrypt|crypt32|pdh|dbghelp|ntdll|winmm|secur32|shlwapi|version|setupapi|wldap32|opengl32|vulkan-1)\.dll$' imports.txt; then
     echo "The core imports DLLs that are not part of Windows (above)."
     exit 1
 fi

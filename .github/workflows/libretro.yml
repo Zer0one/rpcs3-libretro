@@ -248,7 +248,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          python3 .release-tools/.ci/package-release.py package \
+          python .release-tools/.ci/package-release.py package \
             --directory "artifacts" --target "windows-x86_64" \
             --tag "$RELEASE_TAG" --output ci-packages
 
