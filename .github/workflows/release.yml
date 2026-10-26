@@ -11,7 +11,7 @@ on:
         type: string
         default: ''
       platforms:
-        description: 'Rebuild all platforms, or one group when reusing an earlier release run'
+        description: 'Build the targets required by the source tag, or recover one group (Android only for legacy tags)'
         type: choice
         options: [all, linux, windows, macos, android]
         default: all

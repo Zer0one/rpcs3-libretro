@@ -1,6 +1,6 @@
 # Automated Releases
 
-The `Build And Publish Release` workflow builds Linux x86_64/ARM64, Windows x86_64, macOS ARM64/x86_64, and Android ARM64/x86_64 through the reusable `Build libretro core` workflow. Android packages remain experimental. A successful remote build establishes compilation and artifact checks, not gameplay or physical-device behavior.
+The `Build And Publish Release` workflow builds the targets recorded in the source tag's `.ci/release-targets.json` through the reusable `Build libretro core` workflow. Future releases currently require five desktop packages: Linux x86_64/ARM64, Windows x86_64, and macOS ARM64/x86_64. Android publication is paused until further notice. Tags predating the manifest, including v0.1.0.1 and v0.1.0.2, retain their seven-platform policy for reproducible recovery. A successful remote build establishes compilation and artifact checks, not gameplay or physical-device behavior.
 
 ## Publish A New Version
 
@@ -33,13 +33,13 @@ gh workflow run release.yml --repo Zer0one/rpcs3-libretro --ref main \
   -f release_tag=v0.1.0.1 -f platforms=windows -f reuse_run_id=40225618032
 ```
 
-Recovery accepts only a completed run of this repository's release workflow from a commit contained in `origin/main`. The publisher combines previous and rebuilt artifacts, then applies the same mandatory seven-package source/architecture/checksum gates. It does not publish a Windows-only release. Tag pushes always select all platforms.
+Recovery accepts only a completed run of this repository's release workflow from a commit contained in `origin/main`. The publisher combines previous and rebuilt artifacts, then applies the same mandatory source/architecture/checksum gates for every target required by that source tag. It does not publish a Windows-only release. Tag pushes select all platforms required by the tagged source policy.
 
-An empty `release_tag` performs verification builds without publishing. The separate **Build libretro core** manual workflow still permits selected platform groups and symbol retention. Windows/Android failures may be tolerated in that diagnostic workflow; they are mandatory failures in a release run.
+An empty `release_tag` performs verification builds without publishing. The separate **Build libretro core** manual workflow still permits selected platform groups and symbol retention. Windows/Android failures may be tolerated in that diagnostic workflow; every platform selected by the source tag is mandatory in a release run. Android cannot be selected for release tags whose manifest excludes it.
 
 ## Publication Gates
 
-Publication waits for all seven builds. Every archive contains the canonical `rpcs3_libretro.so`, `.dll` or `.dylib`, matching `.info`, any packaged compression dependency, license, source commit, build metadata and payload checksums. The macOS packages reference the frontend's `@rpath/MoltenVK`; they do not include or install a Vulkan driver. Read each package's metadata for its minimum macOS version.
+Publication waits for every build required by the tagged source policy. The manifest is read from that immutable source commit, not the workflow checkout, so recovery of old releases retains its original platform coverage. Every archive contains the canonical `rpcs3_libretro.so`, `.dll` or `.dylib`, matching `.info`, any packaged compression dependency, license, source commit, build metadata and payload checksums. The macOS packages reference the frontend's `@rpath/MoltenVK`; they do not include or install a Vulkan driver. Read each package's metadata for its minimum macOS version.
 
 The package helper checks machine architecture, Libretro entry-point names, embedded source identity, tag/commit alignment, expected payload files and checksums. The publishing job rejects a missing or mismatched platform package, creates aggregate `BUILD_INFO.json` and `SHA256SUMS`, and checks GitHub's uploaded-asset digests. It then publishes an ordinary **Latest** release. Existing release assets with the same names are refreshed only after the complete build and package gates pass. No personal access token is needed: builds use read permissions and only the publishing job requests `contents: write`.
 

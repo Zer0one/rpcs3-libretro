@@ -2,6 +2,10 @@
 
 What changed in the libretro core of this fork, newest first. Changes that come with a merge of upstream RPCS3 are in upstream's own history; a merge is noted here with the upstream build it brought in.
 
+## Unreleased
+
+- Android publication is paused for future releases until further notice. New source tags require only the five Linux, Windows and macOS packages; existing v0.1.0.1/v0.1.0.2 tags retain their original seven-platform policy for reproducible recovery. Manual diagnostic Android builds remain available.
+
 ## v0.1.0.2 — 2026-10-26
 
 - Core Options use one group per function and a root Show Advanced Options selector (disabled by default), including in categorized menus. Advanced controls appear inside their original CPU/GPU and other functional groups. Hiding them preserves saved values and behavior. The eight low-level settings previously inaccessible from the menu are available when advanced options are shown; existing keys, values and defaults are preserved. Max Power Saving CPU-Preemptions now retains its selected value instead of being overwritten with zero.

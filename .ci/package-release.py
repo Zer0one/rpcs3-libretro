@@ -41,8 +41,36 @@ def check_tag(tag: str) -> None:
         raise ValueError("Release tags must use vMAJOR.MINOR.PATCH.BUILD")
 
 
+def targets_for(commit: str) -> tuple[str, ...]:
+    # The tagged source owns its release policy. Old immutable tags predate
+    # this manifest and retain all seven targets for reproducible recovery.
+    manifest = ".ci/release-targets.json"
+    if not git("ls-tree", "--name-only", commit, "--", manifest):
+        return TARGETS
+    policy = json.loads(git("show", f"{commit}:{manifest}"))
+    assert policy["format_version"] == 1, "Unknown release policy format"
+    targets = tuple(policy["targets"])
+    assert targets and len(targets) == len(set(targets)), "Empty or duplicate release targets"
+    assert set(targets) <= set(TARGETS), "Unsupported release target"
+    for group in {target.split("-", 1)[0] for target in targets}:
+        assert {target for target in targets if target.startswith(group + "-")} == {
+            target for target in TARGETS if target.startswith(group + "-")
+        }, "Release policy must select complete platform groups"
+    return targets
+
+
 def plan(args: argparse.Namespace) -> None:
     assert args.platforms in ("all", "linux", "windows", "macos", "android")
+    if args.tag:
+        check_tag(args.tag)
+        commit = git("rev-parse", "--verify", f"refs/tags/{args.tag}^{{commit}}")
+        subprocess.run(["git", "merge-base", "--is-ancestor", commit, "origin/main"], check=True)
+    else:
+        commit = git("rev-parse", "HEAD")
+    groups = tuple(dict.fromkeys(target.split("-", 1)[0] for target in targets_for(commit)))
+    if args.platforms != "all":
+        assert args.platforms in groups, "Platform is excluded by the tagged source release policy"
+    selected = ",".join(groups) if args.platforms == "all" else args.platforms
     if args.platforms != "all":
         assert args.tag and args.reuse_run, "Partial release builds require a tag and a previous release run"
     if args.reuse_run:
@@ -54,14 +82,8 @@ def plan(args: argparse.Namespace) -> None:
         assert previous["event"] in ("push", "workflow_dispatch")
         assert previous["head_repository"]["full_name"] == os.environ["GITHUB_REPOSITORY"]
         subprocess.run(["git", "merge-base", "--is-ancestor", previous["head_sha"], "origin/main"], check=True)
-    if args.tag:
-        check_tag(args.tag)
-        commit = git("rev-parse", "--verify", f"refs/tags/{args.tag}^{{commit}}")
-        subprocess.run(["git", "merge-base", "--is-ancestor", commit, "origin/main"], check=True)
-    else:
-        commit = git("rev-parse", "HEAD")
     result = {"source_commit": commit, "release_tag": args.tag, "upstream": upstream(commit),
-              "platforms": args.platforms, "reuse_run_id": args.reuse_run}
+              "platforms": selected, "reuse_run_id": args.reuse_run}
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as stream:
             for key, value in result.items():
@@ -112,6 +134,7 @@ def package(args: argparse.Namespace) -> None:
     commit = git("rev-parse", "HEAD")
     if args.tag:
         assert git("rev-parse", f"refs/tags/{args.tag}^{{commit}}") == commit
+        assert target in targets_for(commit), "Target is excluded by the release policy"
     subprocess.run(["git", "diff", "--quiet"], check=True)
     short = git("rev-parse", "--short=7", "HEAD")
     version = upstream(commit)
@@ -205,7 +228,7 @@ def assemble(args: argparse.Namespace) -> None:
     check_tag(args.tag)
     commit = git("rev-parse", f"refs/tags/{args.tag}^{{commit}}")
     archives = list(args.directory.rglob("*.zip"))
-    expected = {f"rpcs3-libretro-{args.tag}-{target}.zip": target for target in TARGETS}
+    expected = {f"rpcs3-libretro-{args.tag}-{target}.zip": target for target in targets_for(commit)}
     assert len(archives) == len(expected) and {path.name for path in archives} == set(expected)
     args.output.mkdir(parents=True, exist_ok=False)
     metadata = []
@@ -222,15 +245,17 @@ def assemble(args: argparse.Namespace) -> None:
     rows = "\n".join(f"| `{item['target']}` | {item.get('minimum_macos', 'See target system requirements')} |" for item in metadata)
     args.notes.write_text(
         f"RPCS3 Libretro **{args.tag}**, based on **{upstream(commit)}**. "
-        f"Source commit: `{commit}`. All seven packages were built by GitHub Actions from this exact tag.\n\n"
+        f"Source commit: `{commit}`. All {len(metadata)} packages were built by GitHub Actions from this exact tag.\n\n"
         "### Changes\n\n" + changes + "\n\n### Packages\n\n| Target | Minimum macOS |\n| --- | --- |\n" + rows + "\n\n"
         "Each ZIP includes the canonical core, matching .info, any packaged runtime dependency, "
         "source/workflow metadata and payload checksums. Verify downloads with SHA256SUMS. "
-        "MoltenVK, firmware and games are not included. BUILD_INFO.json records all seven source identities.\n\n"
+        "MoltenVK, firmware and games are not included. BUILD_INFO.json records every package source identity.\n\n"
         "### Validation And Limits\n\n"
-        "Publication requires all seven remote builds and package checks to succeed. Compilation and static "
-        "artifact checks do not establish frontend load or gameplay on the target systems. Android remains "
-        "experimental. Async is experimental and defaults to Sync on macOS; save the option and restart RetroArch "
+        f"Publication requires all {len(metadata)} remote builds and package checks to succeed. Compilation and static "
+        "artifact checks do not establish frontend load or gameplay on the target systems. "
+        + ("Android remains experimental. " if any(item["target"].startswith("android-") for item in metadata)
+           else "Android publication is paused by the release policy. ")
+        + "Async is experimental and defaults to Sync on macOS; save the option and restart RetroArch "
         "to apply it. The final-driver RPCS3 3D/pause-resume acceptance and prior texture anomaly remain unresolved.\n"
     )
     print(json.dumps({"tag": args.tag, "commit": commit, "packages": len(metadata)}, indent=2))
