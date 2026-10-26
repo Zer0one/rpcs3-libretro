@@ -2,7 +2,13 @@
 
 What changed in the libretro core of this fork, newest first. Changes that come with a merge of upstream RPCS3 are in upstream's own history; a merge is noted here with the upstream build it brought in.
 
-## Unreleased
+## v0.1.0.2 — 2026-10-26
+
+- Core Options use one group per function and a root Show Advanced Options selector (disabled by default), including in categorized menus. Advanced controls appear inside their original CPU/GPU and other functional groups. Hiding them preserves saved values and behavior. The eight low-level settings previously inaccessible from the menu are available when advanced options are shown; existing keys, values and defaults are preserved. Max Power Saving CPU-Preemptions now retains its selected value instead of being overwritten with zero.
+
+- RAP licenses are now read directly from the opened PKG's directory, then `system/rpcs3/data/rap/`, with existing HDD-user `exdata` licenses retained as a fallback. The core no longer copies adjacent RAP files into the virtual HDD. ISO disc keys use the sidecar first, then the new `data/key/` and `data/dkey/` collections, with legacy `data/redump/` compatibility; `.key` and `.dkey` remain supported. Collections are created under `system/rpcs3/` and no key files are imported or downloaded.
+
+- New Core option PKG Launcher (enabled by default) lets a base PS3 PSN game's PKG double as a stable RetroArch launcher: after the first installation, reopening it starts the matching installed game without extracting it again. Disable the option to restore installation-only use. Existing installations are recognized from their metadata, including after moving the PKG or redirecting the virtual HDD. Updates and DLC remain installation-only; a conflicting installed identity is rejected.
 
 - Windows release checks recognize the system LDAP DLL (`WLDAP32.dll`) instead of rejecting a successfully linked core. A failed release can rebuild one platform group and reuse successful packages from a verified earlier release run; all seven packages remain mandatory for publication.
 

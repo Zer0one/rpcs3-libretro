@@ -8,7 +8,10 @@
 #include "libretro.h"
 #include "libretro_core.h"
 #include "libretro_core_options.h"
+#include "libretro_option_visibility.h"
 #include "libretro_patch_manager.h"
+#include "libretro_pkg_link.h"
+#include "libretro_content_keys.h"
 #include "Loader/PSF.h"
 
 #include <cstdlib>
@@ -397,36 +400,49 @@ static bool is_pkg_file(const std::string& path)
     return ext == ".pkg";
 }
 
-// Install a PKG file and return the path to the installed EBOOT.BIN
-// A PSN game's PKG installs without its license, but its EBOOT.BIN only
-// decrypts with the .rap file, which RPCS3 looks for in
-// dev_hdd0/home/<user>/exdata/ (standalone has its user drop it there). The
-// .rap files next to the PKG - a PSN dump comes as both - are copied there with
-// the install, unless one of that name is there already (sco).
-static void install_rap_files(const std::string& pkg_path)
+// Resolve a base game's existing installation from package metadata and the
+// active HDD mapping. RetroArch keeps the PKG as its content/playlist identity;
+// only RPCS3's boot path changes. No host-path index can become stale.
+static libretro_pkg::route resolve_pkg_installation(const std::string& pkg_path, std::string& game_dir, bool launcher_enabled, bool& base_game)
 {
-    const std::string pkg_dir = fs::get_parent_dir(pkg_path);
-    const std::string exdata = g_cfg_vfs.get(g_cfg_vfs.dev_hdd0, system_dir + "/rpcs3/") + "home/00000001/exdata/";
-    fs::dir dir(pkg_dir);
-    if (!dir)
-        return;
-    for (const fs::dir_entry& entry : dir)
-    {
-        if (entry.is_directory || entry.name.size() <= 4 || fmt::to_lower(entry.name.substr(entry.name.size() - 4)) != ".rap")
-            continue;
-        // RPCS3 wants the extension in lower case
-        const std::string dest = exdata + entry.name.substr(0, entry.name.size() - 4) + ".rap";
-        if (fs::is_file(dest))
-            continue;
-        fs::create_path(exdata);
-        if (fs::copy_file(pkg_dir + "/" + entry.name, dest, false))
-        {
-            if (log_cb)
-                log_cb(RETRO_LOG_INFO, "RPCS3: license %s installed to %s\n", entry.name.c_str(), exdata.c_str());
-        }
-        else if (log_cb)
-            log_cb(RETRO_LOG_WARN, "RPCS3: could not copy %s to %s\n", entry.name.c_str(), exdata.c_str());
-    }
+    base_game = false;
+    if (!launcher_enabled)
+        return libretro_pkg::route::install;
+    package_reader reader(pkg_path);
+    if (!reader.is_valid())
+        return libretro_pkg::route::install; // The installer reports invalid packages.
+
+    const auto& header = reader.get_header();
+    const auto& metadata = reader.get_metadata();
+    const auto& sfo = reader.get_psf();
+    const std::string content_id(header.title_id, strnlen(header.title_id, sizeof(header.title_id)));
+    const std::string sfo_content_id(psf::get_string(sfo, "CONTENT_ID"));
+    const libretro_pkg::package pkg{
+        psf::get_string(sfo, "TITLE_ID"), content_id, psf::get_string(sfo, "CATEGORY"),
+        header.pkg_platform == PKG_PLATFORM_TYPE_PS3,
+        metadata.content_type == PKG_CONTENT_TYPE_GAME_EXEC,
+        (metadata.package_type & PKG_FLAG_PATCH) != 0};
+    if ((!sfo_content_id.empty() && sfo_content_id != content_id) ||
+        !libretro_pkg::is_base_game(pkg))
+        return libretro_pkg::route::install;
+    base_game = true;
+
+    const std::string install_directory = metadata.install_dir.empty()
+        ? content_id.substr(7, 9) : metadata.install_dir;
+    if (!libretro_pkg::valid_install_directory(install_directory))
+        return libretro_pkg::route::install;
+
+    g_cfg_vfs.load();
+    g_cfg_vfs.emulator_dir.from_string(system_dir + "/rpcs3/");
+    const std::string hdd0 = g_cfg_vfs.get(g_cfg_vfs.dev_hdd0, system_dir + "/rpcs3/");
+    game_dir = hdd0 + "game/" + vfs::escape(install_directory);
+    if (!fs::is_file(game_dir + "/PARAM.SFO"))
+        return libretro_pkg::route::install;
+    const auto installed_sfo = psf::load_object(game_dir + "/PARAM.SFO");
+    return libretro_pkg::select(pkg, {
+        psf::get_string(installed_sfo, "TITLE_ID"),
+        psf::get_string(installed_sfo, "CONTENT_ID"),
+        fs::is_file(game_dir + "/USRDIR/EBOOT.BIN")}, launcher_enabled);
 }
 
 // Installs the PKG; true when it went in. eboot_path is its EBOOT.BIN, empty
@@ -545,7 +561,6 @@ static bool install_pkg_file(const std::string& pkg_path, std::string& eboot_pat
         }
     }
 
-    install_rap_files(pkg_path);
     return true;
 }
 
@@ -1090,8 +1105,7 @@ static void libretro_apply_core_options()
     std::string enter_btn = get_option_value("rpcs3_enter_button", "cross");
     g_cfg.sys.enter_button_assignment.set(enter_btn == "circle" ? enter_button_assign::circle : enter_button_assign::cross);
 
-    // Avoid additional CPU-throttling heuristics
-    g_cfg.core.max_cpu_preempt_count_per_frame.set(0);
+    // max_cpu_preempt_count_per_frame is set by its core option above.
 
 }
 
@@ -1537,8 +1551,10 @@ static void libretro_big_little_defaults()
 // game is known; RetroArch keeps what the .opt file says for each key.
 static bool RETRO_CALLCONV libretro_update_options_display()
 {
+    const bool changed = libretro_option_visibility::update(environ_cb,
+        get_option_value("rpcs3_show_advanced_options", "disabled") == "enabled");
     libretro_patches::update_display(environ_cb, [](const char* key) { return get_option_value(key, "disabled"); });
-    return true;
+    return changed || libretro_patches::any();
 }
 
 static void publish_core_options(retro_environment_t cb)
@@ -1582,22 +1598,14 @@ static void publish_core_options(retro_environment_t cb)
     bool categories_supported = false;
     libretro_set_core_options(cb, &categories_supported);
 
-    // Out of the menu, as RPCS3 keeps them out of its settings dialog; the
-    // .opt file still sets them (the HIDDEN block in libretro_core_options.h)
-    for (const char* key : {"rpcs3_spu_cache", "rpcs3_accurate_dfma", "rpcs3_spu_verification",
-            "rpcs3_driver_recovery_timeout", "rpcs3_mfc_shuffling", "rpcs3_spu_delay_penalty",
-            "rpcs3_vblank_ntsc", "rpcs3_hle_lwmutex"})
-    {
-        struct retro_core_option_display display{key, false};
-        cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
-    }
+    // Reapply after every publication, including when the frontend replaces its
+    // option list at game load. The root selector also works with V2 categories.
+    libretro_option_visibility::update(cb,
+        get_option_value("rpcs3_show_advanced_options", "disabled") == "enabled", true);
+    struct retro_core_options_update_display_callback update_display{libretro_update_options_display};
+    cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK, &update_display);
+    libretro_patches::update_display(cb, [](const char* key) { return get_option_value(key, "disabled"); });
 
-    if (libretro_patches::any())
-    {
-        struct retro_core_options_update_display_callback update_display{libretro_update_options_display};
-        cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK, &update_display);
-        libretro_patches::update_display(cb, [](const char* key) { return get_option_value(key, "disabled"); });
-    }
 }
 
 // The serial of the game in a folder (a disc dump's root or PS3_GAME, an HDD
@@ -1933,6 +1941,12 @@ void retro_init(void)
     std::string emu_dir = system_dir + "/rpcs3/";
     g_cfg_vfs.emulator_dir.from_string(emu_dir);
 
+    // Shared collections are independent of the emulated HDD/user. Licenses
+    // and keys are read in place; nothing is imported from content folders.
+    for (const auto directory : {"data/rap/", "data/key/", "data/dkey/"})
+        if (!fs::create_path(emu_dir + directory) && log_cb)
+            log_cb(RETRO_LOG_WARN, "RPCS3: could not create key directory %s\n", (emu_dir + directory).c_str());
+
     // Ensure RPCS3 can reload the correct EmulatorDir inside Emu.Init()/BootGame.
     // Emu.Init() resets g_cfg_vfs and then loads vfs.yml from fs::get_config_dir(true).
     // If vfs.yml is missing, RPCS3 falls back to RetroArch root, which breaks /dev_flash.
@@ -2104,6 +2118,7 @@ void retro_deinit(void)
     }
 
     Emulator::CleanUp();
+    libretro_content_keys::set_pkg_directory({});
     core_initialized = false;
     game_loaded = false;
 
@@ -2854,39 +2869,70 @@ bool retro_load_game(const struct retro_game_info* game)
     }
 
     game_path = game->path;
-
-    // A PKG is installed, not started, as standalone RPCS3 does: the core says
-    // where it went and has RetroArch close the content again (retro_run). The
-    // game is started afterwards from its PARAM.SFO in dev_hdd0/game/ (NNshi:
-    // a game booted right after its install looked like a hang while its
-    // modules compiled).
+    std::string pkg_directory;
     if (is_pkg_file(game_path))
     {
-        std::string installed_eboot;
-        if (!install_pkg_file(game_path, installed_eboot))
-            return false;
+        pkg_directory = fs::get_parent_dir(game_path);
+        if (pkg_directory.empty())
+            pkg_directory = ".";
+    }
+    libretro_content_keys::set_pkg_directory(std::move(pkg_directory));
 
-        std::string message;
-        if (installed_eboot.empty())
+    // A base-game PKG also identifies its installed game. A first installation
+    // still finishes separately so module compilation is not mistaken for an
+    // installer hang. Opening that same PKG afterwards boots the installed copy.
+    // Updates, DLC and other package types always retain the installer path.
+    // Disabling PKG Launcher retains installation-only behavior for every PKG.
+    if (is_pkg_file(game_path))
+    {
+        std::string installed_game;
+        bool base_game = false;
+        const bool pkg_launcher = get_option_value("rpcs3_pkg_launcher", "enabled") == "enabled";
+        const auto route = resolve_pkg_installation(game_path, installed_game, pkg_launcher, base_game);
+        if (route == libretro_pkg::route::conflict)
         {
-            message = "PKG installed (no game in it - DLC or an update)";
+            if (log_cb)
+                log_cb(RETRO_LOG_ERROR, "RPCS3: PKG identity does not match the installation at %s; refusing to launch or overwrite it\n", installed_game.c_str());
+            libretro_show_message("PKG does not match the installed game", 600);
+            return false;
+        }
+        if (route == libretro_pkg::route::launch)
+        {
+            if (log_cb)
+                log_cb(RETRO_LOG_INFO, "RPCS3: PKG %s resolves to installed game %s\n", game_path.c_str(), installed_game.c_str());
+            game_path = installed_game;
         }
         else
         {
-            // .../game/<title id>/USRDIR/EBOOT.BIN
-            const std::string game_dir = fs::get_parent_dir(fs::get_parent_dir(installed_eboot));
-            message = "PKG installed. Start it from " + game_dir + "/PARAM.SFO";
+            std::string installed_eboot;
+            if (!install_pkg_file(game_path, installed_eboot))
+                return false;
+
+            std::string message;
+            if (installed_eboot.empty())
+            {
+                message = "PKG installed (no game in it - DLC or an update)";
+            }
+            else
+            {
+                // .../game/<title id>/USRDIR/EBOOT.BIN
+                const std::string game_dir = fs::get_parent_dir(fs::get_parent_dir(installed_eboot));
+                message = pkg_launcher && base_game
+                    ? "PKG installed. Reopen the game PKG to play, or open " + game_dir + "/PARAM.SFO"
+                    : "PKG installed. Start it from " + game_dir + "/PARAM.SFO";
+            }
+            if (log_cb)
+                log_cb(RETRO_LOG_INFO, "RPCS3: %s\n", message.c_str());
+            libretro_show_message(message.c_str(), 600);
+            s_pkg_install_only = true;
+            return true;
         }
-        if (log_cb)
-            log_cb(RETRO_LOG_INFO, "RPCS3: %s\n", message.c_str());
-        libretro_show_message(message.c_str(), 600);
-        s_pkg_install_only = true;
-        return true;
     }
     // A disc image. The ISO reader serves the volume inside it as an fs::
     // virtual device, so the boot path is taken from there and everything
     // below reads the image through the device. An encrypted image needs its
-    // redump key in data/redump/ - the reader looks for it and says so when it
+    // matching key beside the ISO or in data/key/ or data/dkey/ (data/redump/ is also
+    // accepted) - the reader looks for it and says so when it
     // is missing.
     else if (is_iso_file(game_path))
     {
@@ -2901,9 +2947,9 @@ bool retro_load_game(const struct retro_game_info* game)
             if (log_cb)
                 log_cb(RETRO_LOG_ERROR,
                     "RPCS3: %s could not be opened as a PS3 disc: no PS3_GAME/USRDIR/EBOOT.BIN in the volume. "
-                    "An encrypted image needs its .dkey in data/redump/.\n",
+                    "An encrypted image needs its .dkey/.key beside the ISO or in data/key/ or data/dkey/.\n",
                     game_path.c_str());
-            libretro_show_message("This disc image could not be opened - an encrypted one needs its redump key", 500);
+            libretro_show_message("This disc image could not be opened - check its .dkey/.key beside the ISO or in data/key or data/dkey", 500);
             unload_iso();
             s_iso_path.clear();
             return false;
@@ -3311,6 +3357,7 @@ void retro_unload_game(void)
         libretro_limit_disk_cache();
     }
 
+    libretro_content_keys::set_pkg_directory({});
 }
 
 void retro_run(void)
@@ -3379,6 +3426,8 @@ void retro_run(void)
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
     {
         libretro_apply_core_options();
+        // Fallback for frontends without the menu display-update callback.
+        libretro_update_options_display();
         // The game's database settings stay on top of options changed while
         // it runs, as they were at its start.
         if (!s_database_config.empty())

@@ -116,7 +116,7 @@ VSync Off was a diagnostic control. The subsequent [separate-queue correction](#
 
 ### Using And Reading The Log
 
-Enable **Debug → Performance Timing Log** (`rpcs3_timing_log=enabled`) in Core Options. It defaults to `disabled`, is read at startup and on option updates, and is reset at content unload. No new runtime downloads, output locations or global settings are introduced.
+Enable **Show Advanced Options**, then **Diagnostics → Performance Timing Log** (`rpcs3_timing_log=enabled`) in Core Options. It defaults to `disabled`, is read at startup and on option updates, and is reset at content unload. No new runtime downloads, output locations or global settings are introduced.
 
 Each `[RPCS3 Timing]` line represents about one second and includes:
 

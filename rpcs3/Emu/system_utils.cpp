@@ -13,6 +13,9 @@
 #include "Crypto/unself.h"
 #include "Crypto/unedat.h"
 #include "Loader/ISO.h"
+#ifdef LIBRETRO_CORE
+#include "libretro/libretro_content_keys.h"
+#endif
 
 #include <charconv>
 #include <thread>
@@ -418,6 +421,17 @@ namespace rpcs3::utils
 			return {};
 		}
 
+#ifdef LIBRETRO_CORE
+		// Read the requested license in place: package sidecar, then the shared
+		// RAP collection. User exdata remains a compatibility fallback below.
+		if (std::string path = libretro_content_keys::find_rap(
+			libretro_content_keys::pkg_directory(), get_data_dir(), rap,
+			[](const std::string& candidate) { return fs::is_file(candidate); }); !path.empty())
+		{
+			return path;
+		}
+#endif
+
 		const std::string home_dir = get_hdd0_dir() + "home";
 
 		std::string rap_path;
@@ -434,8 +448,14 @@ namespace rpcs3::utils
 			}
 		}
 
+		// Report the central filename when no license was found, so a core
+		// user has one stable location to populate, independent of PS3 users.
+#ifdef LIBRETRO_CORE
+		return libretro_content_keys::join(get_data_dir(), "rap/" + std::string(rap) + ".rap");
+#else
 		// Return a sample path tested for logging purposes
 		return rap_path;
+#endif
 	}
 
 	std::string get_c00_unlock_edat_path(const std::string_view& content_id)

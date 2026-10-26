@@ -1194,7 +1194,12 @@ static game_boot_result check_disc_key(const std::string& path)
 		return game_boot_result::disc_key_invalid;
 	}
 
+#ifdef LIBRETRO_CORE
+	sys_log.error("The disc image '%s' is encrypted and no matching .dkey/.key was found beside the ISO or in '%skey/', '%sdkey/' or legacy '%s'",
+		path, rpcs3::utils::get_data_dir(), rpcs3::utils::get_data_dir(), rpcs3::utils::get_redump_key_dir());
+#else
 	sys_log.error("The disc image '%s' is encrypted and no matching decryption key was found in '%s'", path, rpcs3::utils::get_redump_key_dir());
+#endif
 
 	return game_boot_result::disc_key_missing;
 }

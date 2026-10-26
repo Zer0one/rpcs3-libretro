@@ -5,6 +5,9 @@
 #include "Emu/system_utils.hpp"
 #include "Emu/System.h"
 #include "Crypto/utils.h"
+#ifdef LIBRETRO_CORE
+#include "libretro/libretro_content_keys.h"
+#endif
 
 #include <chrono>
 #include <codecvt>
@@ -379,30 +382,28 @@ iso_type_status iso_file_decryption::retrieve_key(iso_archive& archive, std::str
 	}
 
 	//
-	// Scan all the key files present in the redump keys folder, decrypt the blocks read above and test them for a
+	// Scan the configured disc-key collections, decrypt the blocks read above and test each key for a
 	// match with the magic value of the file each of them comes from
 	//
 
-	// A keys folder commonly holds thousands of files: build its path once instead of on every entry
-	const std::string key_dir = rpcs3::utils::get_redump_key_dir();
-
-	std::vector<fs::dir_entry> entries;
-
-	for (auto&& dir_entry : fs::dir(key_dir))
+#ifdef LIBRETRO_CORE
+	const auto key_dirs = libretro_content_keys::iso_directories(
+		rpcs3::utils::get_data_dir(), rpcs3::utils::get_redump_key_dir());
+#else
+	const std::array<std::string, 1> key_dirs{rpcs3::utils::get_redump_key_dir()};
+#endif
+	std::vector<std::string> entries;
+	for (const auto& key_dir : key_dirs)
 	{
-		// Prefetch entries, it is unsafe to keep fs::dir for a long time or for many operations
-		entries.emplace_back(std::move(dir_entry));
+		// Prefetch paths: do not hold a directory open while testing keys.
+		for (auto&& entry : fs::dir(key_dir))
+			if (!entry.is_directory && entry.name != "." && entry.name != "..")
+				entries.push_back(key_dir + (key_dir.ends_with('/') ? "" : "/") + entry.name);
 	}
 
-	for (const fs::dir_entry& dir_entry : entries)
+	for (const auto& entry : entries)
 	{
-		if (dir_entry.is_directory || dir_entry.name == "." || dir_entry.name == "..")
-		{
-			continue;
-		}
-
-		// Assigning in place keeps the buffer the previous entry already grew
-		key_path.assign(key_dir).append(dir_entry.name);
+		key_path.assign(entry);
 
 		// If no valid key is present on the file
 		if (get_key(key_path, &aes_ctx) != iso_type_status::REDUMP_ISO)
@@ -462,6 +463,10 @@ iso_type_status iso_file_decryption::check_type(const std::string& path, std::st
 		return iso_type_status::NOT_ISO;
 	}
 
+#ifdef LIBRETRO_CORE
+	const auto key_paths = libretro_content_keys::iso_paths(path,
+		rpcs3::utils::get_data_dir(), rpcs3::utils::get_redump_key_dir());
+#else
 	// Remove file extension from file path
 	const usz ext_pos = path.rfind('.');
 	const std::string name_path = ext_pos == umax ? path : path.substr(0, ext_pos);
@@ -478,6 +483,7 @@ iso_type_status iso_file_decryption::check_type(const std::string& path, std::st
 		rpcs3::utils::get_redump_key_dir() + name + ".dkey",
 		rpcs3::utils::get_redump_key_dir() + name + ".key"
 	};
+#endif
 
 	for (const std::string& path : key_paths)
 	{

@@ -1,0 +1,214 @@
+StandaloneSetting,ConfigField,RegistrySection,MainDialogReference,Status,CoreOption,Notes
+PPUDecoder,core.ppu_decoder,Core Tab,Yes,Exposed,rpcs3_ppu_decoder,Connected to a core option; values may be consolidated.
+SPUDecoder,core.spu_decoder,Core Tab,Yes,Exposed,rpcs3_spu_decoder,Connected to a core option; values may be consolidated.
+HookStaticFuncs,core.hook_functions,Core Tab,Yes,Exposed,rpcs3_hook_static_funcs,Connected to a core option; values may be consolidated.
+ThreadSchedulerMode,core.thread_scheduler,Core Tab,Yes,Exposed,rpcs3_thread_scheduler,Connected to a core option; values may be consolidated.
+SPULoopDetection,core.spu_loop_detection,Core Tab,Yes,Exposed,rpcs3_spu_loop_detection,Connected to a core option; values may be consolidated.
+PreferredSPUThreads,core.preferred_spu_threads,Core Tab,Yes,Exposed,rpcs3_preferred_spu_threads,Connected to a core option; values may be consolidated.
+PPUDebug,core.ppu_debug,Core Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+SPUDebug,core.spu_debug,Core Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+MFCDebug,core.mfc_debug,Core Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+MaxLLVMThreads,core.llvm_threads,Core Tab,Yes,Exposed,rpcs3_llvm_threads,Connected to a core option; values may be consolidated.
+LLVMPrecompilation,core.llvm_precompilation,Core Tab,Yes,Exposed,rpcs3_llvm_precompilation,Connected to a core option; values may be consolidated.
+AccurateSpuDMA,core.spu_accurate_dma,Core Tab,Yes,Exposed,rpcs3_spu_accurate_dma,Connected to a core option; values may be consolidated.
+AccurateClineStores,core.accurate_cache_line_stores,Core Tab,Yes,Exposed,rpcs3_spu_cache_line_stores,Connected to a core option; values may be consolidated.
+AccurateRSXAccess,core.rsx_accurate_res_access,Core Tab,Yes,Exposed,rpcs3_accurate_rsx_reservation,Connected to a core option; values may be consolidated.
+FIFOAccuracy,core.rsx_fifo_accuracy,Core Tab,Yes,Exposed,rpcs3_rsx_fifo_accuracy,Connected to a core option; values may be consolidated.
+XFloatAccuracy,core.spu_xfloat_accuracy,Core Tab,Yes,Exposed,rpcs3_spu_xfloat_accuracy,Connected to a core option; values may be consolidated.
+MFCCommandsShuffling,core.mfc_transfers_shuffling,Core Tab,Yes,Exposed,rpcs3_mfc_delay_command,Connected to a core option; values may be consolidated.
+SetDAZandFTZ,core.set_daz_and_ftz,Core Tab,Yes,Exposed,rpcs3_set_daz_ftz,Connected to a core option; values may be consolidated.
+SPUBlockSize,core.spu_block_size,Core Tab,Yes,Exposed,rpcs3_spu_block_size,Connected to a core option; values may be consolidated.
+SPUCache,core.spu_cache,Core Tab,No,Exposed,rpcs3_spu_cache,Formerly hidden; now in CPU when Show Advanced Options is enabled.
+DebugConsoleMode,core.debug_console_mode,Core Tab,Yes,Exposed,rpcs3_debug_console_mode,Connected to a core option; values may be consolidated.
+MaxSPURSThreads,core.max_spurs_threads,Core Tab,Yes,Exposed,rpcs3_max_spurs_threads,Connected to a core option; values may be consolidated.
+SleepTimersAccuracy,core.sleep_timers_accuracy,Core Tab,Yes,Exposed,rpcs3_sleep_timers_accuracy,Connected to a core option; values may be consolidated.
+ClocksScale,core.clocks_scale,Core Tab,Yes,Exposed,rpcs3_clocks_scale,Connected to a core option; values may be consolidated.
+AccuratePPU128Loop,core.ppu_128_reservations_loop_max_length,Core Tab,Yes,Exposed,rpcs3_accurate_ppu_128,Connected to a core option; values may be consolidated.
+PerformanceReport,core.perf_report,Core Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+NumPPUThreads,core.ppu_threads,Core Tab,Yes,Exposed,rpcs3_ppu_threads,Connected to a core option; values may be consolidated.
+PPUVNANFixup,core.ppu_fix_vnan,Core Tab,No,Not Exposed,,Registry-only at this build; separate from AccuratePPUVNAN already exposed.
+AccurateDFMA,core.use_accurate_dfma,Core Tab,No,Exposed,rpcs3_accurate_dfma,Formerly hidden; now in CPU when Show Advanced Options is enabled.
+AccuratePPUSAT,core.ppu_set_sat_bit,Core Tab,Yes,Exposed,rpcs3_ppu_set_sat_bit,Connected to a core option; values may be consolidated.
+AccuratePPUNJ,core.ppu_use_nj_bit,Core Tab,Yes,Exposed,rpcs3_ppu_nj_mode,Connected to a core option; values may be consolidated.
+AccuratePPUVNAN,core.ppu_set_vnan,Core Tab,Yes,Exposed,rpcs3_ppu_accurate_vector_nan,Connected to a core option; values may be consolidated.
+AccuratePPUFPCC,core.ppu_set_fpcc,Core Tab,Yes,Exposed,rpcs3_ppu_set_fpcc,Connected to a core option; values may be consolidated.
+AccuratePPUVEST,core.ppu_set_vest,Core Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+MaxPreemptCount,core.max_cpu_preempt_count_per_frame,Core Tab,Yes,Exposed,rpcs3_max_preempt_count,Fixed: selected value was overwritten with zero at the end of option application.
+SPUProfiler,core.spu_prof,Core Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+DisableSpinOptimization,core.spu_getllar_spin_optimization_disabled,Core Tab,Yes,Exposed,rpcs3_disable_getllar_spin_opt,Connected to a core option; values may be consolidated.
+EnabledSPUEventsBusyLoop,core.spu_reservation_busy_waiting_enabled,Core Tab,Yes,Exposed,rpcs3_spu_events_busy_loop,Connected to a core option; values may be consolidated.
+PPUReservationPriorityOverSPUs,core.ppu_reservation_priority_over_spu,Core Tab,Yes,Exposed,rpcs3_ppu_reservation_priority,Connected to a core option; values may be consolidated.
+AccurateSpuReservations,core.spu_accurate_reservations,Core Tab,Yes,Exposed,rpcs3_spu_accurate_reservations,Connected to a core option; values may be consolidated.
+SPUMmioDelay,core.spu_mmio_delay_enabled,Core Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+Renderer,video.renderer,Graphics Tab,Yes,Exposed,rpcs3_renderer,Connected to a core option; values may be consolidated.
+Resolution,video.resolution,Graphics Tab,Yes,Exposed,rpcs3_default_resolution,Connected to a core option; values may be consolidated.
+AspectRatio,video.aspect_ratio,Graphics Tab,Yes,Exposed,rpcs3_aspect_ratio,Connected to a core option; values may be consolidated.
+FrameLimit,video.frame_limit,Graphics Tab,Yes,Exposed,rpcs3_frame_limit,Connected to a core option; values may be consolidated.
+MSAA,video.antialiasing_level,Graphics Tab,Yes,Exposed,rpcs3_msaa,Connected to a core option; values may be consolidated.
+LogShaderPrograms,video.log_programs,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+WriteDepthBuffer,video.write_depth_buffer,Graphics Tab,Yes,Exposed,rpcs3_write_depth_buffers,Connected to a core option; values may be consolidated.
+WriteColorBuffers,video.write_color_buffers,Graphics Tab,Yes,Exposed,rpcs3_write_color_buffers,Connected to a core option; values may be consolidated.
+ReadColorBuffers,video.read_color_buffers,Graphics Tab,Yes,Exposed,rpcs3_read_color_buffers,Connected to a core option; values may be consolidated.
+ReadDepthBuffer,video.read_depth_buffer,Graphics Tab,Yes,Exposed,rpcs3_read_depth_buffers,Connected to a core option; values may be consolidated.
+HandleRSXTiledMemory,video.handle_tiled_memory,Graphics Tab,Yes,Exposed,rpcs3_handle_tiled_memory,Connected to a core option; values may be consolidated.
+VSync,video.vsync,Graphics Tab,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+DebugOutput,video.debug_output,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+DebugOverlay,video.debug_overlay,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+RenderdocCompatibility,video.renderdoc_compatiblity,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+GPUTextureScaling,video.use_gpu_texture_scaling,Graphics Tab,Yes,Exposed,rpcs3_gpu_texture_scaling,Connected to a core option; values may be consolidated.
+StretchToDisplayArea,video.stretch_to_display_area,Graphics Tab,Yes,Exposed,rpcs3_stretch_to_display,Connected to a core option; values may be consolidated.
+ForceHighpZ,video.force_high_precision_z_buffer,Graphics Tab,Yes,Not Exposed,,Missing precision control; both GL and Vulkan have consumers.
+StrictRenderingMode,video.strict_rendering_mode,Graphics Tab,Yes,Exposed,rpcs3_strict_rendering,Connected to a core option; values may be consolidated.
+FramebufferAliasingBias,video.fb_aliasing_bias,Graphics Tab,Yes,Exposed,rpcs3_fb_aliasing_bias,Connected to a core option; values may be consolidated.
+DisableVertexCache,video.disable_vertex_cache,Graphics Tab,Yes,Exposed,rpcs3_disable_vertex_cache,Connected to a core option; values may be consolidated.
+DisableOcclusionQueries,video.disable_zcull_queries,Graphics Tab,Yes,Exposed,rpcs3_disable_zcull_queries,Connected to a core option; values may be consolidated.
+DisableVideoOutput,video.disable_video_output,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+DisableFIFOReordering,video.disable_FIFO_reordering,Graphics Tab,Yes,Exposed,rpcs3_disable_fifo_reordering,Connected to a core option; values may be consolidated.
+EmulateDepthCompare,video.emulate_depth_compare,Graphics Tab,Yes,Exposed,rpcs3_emulate_depth_compare,Connected to a core option; values may be consolidated.
+StereoRenderEnabled,video.stereo_enabled,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+StereoRenderMode,video.stereo_render_mode,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ScreenSize,video.screen_size,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+StrictTextureFlushing,video.strict_texture_flushing,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ForceCPUBlitEmulation,video.force_cpu_blit_processing,Graphics Tab,Yes,Exposed,rpcs3_cpu_blit,Connected to a core option; values may be consolidated.
+DisableOnDiskShaderCache,video.disable_on_disk_shader_cache,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+DisableVulkanMemAllocator,video.disable_vulkan_mem_allocator,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ShaderMode,video.shadermode,Graphics Tab,Yes,Exposed,rpcs3_shader_mode,Connected to a core option; values may be consolidated.
+ShaderCompilerNumThreads,video.shader_compiler_threads_count,Graphics Tab,Yes,Exposed,rpcs3_shader_compiler_threads,Connected to a core option; values may be consolidated.
+ShaderPrecisionQuality,video.shader_precision,Graphics Tab,Yes,Exposed,rpcs3_shader_quality,Connected to a core option; values may be consolidated.
+MultithreadedRSX,video.multithreaded_rsx,Graphics Tab,Yes,Exposed,rpcs3_multithreaded_rsx,Connected to a core option; values may be consolidated.
+RelaxedZCULL,video.relaxed_zcull_sync,Graphics Tab,Yes,Exposed,rpcs3_zcull_accuracy,Connected to a core option; values may be consolidated.
+PreciseZCULL,video.precise_zpass_count,Graphics Tab,Yes,Exposed,rpcs3_zcull_accuracy,Connected to a core option; values may be consolidated.
+AnisotropicFilterOverride,video.anisotropic_level_override,Graphics Tab,Yes,Exposed,rpcs3_anisotropic_filter,Connected to a core option; values may be consolidated.
+TextureLodBias,video.texture_lod_bias,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ResolutionScale,video.resolution_scale_percent,Graphics Tab,Yes,Exposed,rpcs3_resolution_scale,Connected to a core option; values may be consolidated.
+MinimumScalableDimension,video.min_scalable_dimension,Graphics Tab,Yes,Exposed,rpcs3_scale_threshold,Connected to a core option; values may be consolidated.
+VBlankRate,video.vblank_rate,Graphics Tab,Yes,Exposed,rpcs3_vblank_rate,Connected to a core option; values may be consolidated.
+VBlankNTSCFixup,video.vblank_ntsc,Graphics Tab,No,Exposed,rpcs3_vblank_ntsc,Connected to a core option; values may be consolidated.
+DriverWakeUpDelay,video.driver_wakeup_delay,Graphics Tab,Yes,Exposed,rpcs3_driver_wakeup_delay,Connected to a core option; values may be consolidated.
+PPUEventWakeUpDelay,core.ppu_event_wakeup_delay,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+AllowHostGPULabels,video.host_label_synchronization,Graphics Tab,Yes,Exposed,rpcs3_host_gpu_labels,Connected to a core option; values may be consolidated.
+DisableMSLFastMath,video.disable_msl_fast_math,Graphics Tab,Yes,Not Exposed,,"Missing. macOS candidate; must be applied through the actual frontend Vulkan instance, not only the standalone instance path."
+OutputScalingMode,video.output_scaling,Graphics Tab,Yes,Frontend Or Port Policy,,Core forces internal bilinear scaling; RetroArch handles final scaling/shaders. Not every upstream filter has an exact frontend equivalent.
+ForceHwMSAAResolve,video.force_hw_MSAA_resolve,Graphics Tab,Yes,Exposed,rpcs3_force_hw_msaa_resolve,Connected to a core option; values may be consolidated.
+DisableAsyncHostMM,video.disable_async_host_memory_manager,Graphics Tab,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+RecordWithOverlays,video.record_with_overlays,Graphics Tab,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+DisableHWBlending,video.disable_hardware_texel_remapping,Graphics Tab,Yes,Exposed,rpcs3_disable_hw_colorspace,Upstream GUI enum names are swapped; mapping uses actual config target (texel remapping).
+DisableHWTexelRemapping,video.disable_hardware_blending,Graphics Tab,Yes,Exposed,rpcs3_disable_hw_blending,Upstream GUI enum names are swapped; mapping uses actual config target (hardware blending).
+FsrSharpeningStrength,video.rcas_sharpening_intensity,Graphics Tab,Yes,Frontend Or Port Policy,,Internal FSR sharpening is not exposed; final-image sharpening can instead be configured with frontend shaders.
+DisableBlitEngineScaling,video.disable_blit_engine_upscaling,Graphics Tab,Yes,Exposed,rpcs3_disable_blit_upscaling,Connected to a core option; values may be consolidated.
+VulkanAdapter,video.vk.adapter,Vulkan,Yes,Frontend Or Port Policy,,Frontend owns the Vulkan device; core adopts it when available. Standalone adapter selection is not equivalent.
+VulkanAsyncTextureUploads,video.vk.asynchronous_texture_streaming,Vulkan,Yes,Exposed,rpcs3_async_texture_streaming,Connected to a core option; values may be consolidated.
+VulkanAsyncSchedulerDriver,video.vk.asynchronous_scheduler,Vulkan,Yes,Not Exposed,,Missing upstream Vulkan scheduler control. Distinct from shaders and MoltenVK queue submission.
+ExclusiveFullscreenMode,video.vk.exclusive_fullscreen_mode,Vulkan,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+UseReBAR,video.vk.use_rebar_upload_heap,Vulkan,Yes,Exposed,rpcs3_use_rebar,Connected to a core option; values may be consolidated.
+PerfOverlayEnabled,video.perf_overlay.enabled,Performance Overlay,Yes,Exposed,rpcs3_perf_overlay,Connected to a core option; values may be consolidated.
+PerfOverlayFramerateGraphEnabled,video.perf_overlay.framerate_graph_enabled,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayFrametimeGraphEnabled,video.perf_overlay.frametime_graph_enabled,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayFramerateDatapoints,video.perf_overlay.framerate_datapoint_count,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayFrametimeDatapoints,video.perf_overlay.frametime_datapoint_count,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayDetailLevel,video.perf_overlay.level,Performance Overlay,Yes,Exposed,rpcs3_perf_overlay,Connected to a core option; values may be consolidated.
+PerfOverlayFramerateDetailLevel,video.perf_overlay.framerate_graph_detail_level,Performance Overlay,No,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayFrametimeDetailLevel,video.perf_overlay.frametime_graph_detail_level,Performance Overlay,No,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayPosition,video.perf_overlay.position,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayUpdateInterval,video.perf_overlay.update_interval,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayFontSize,video.perf_overlay.font_size,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayOpacity,video.perf_overlay.opacity,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayMarginX,video.perf_overlay.margin_x,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayMarginY,video.perf_overlay.margin_y,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayCenterX,video.perf_overlay.center_x,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayCenterY,video.perf_overlay.center_y,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PerfOverlayUseWindowSpace,video.perf_overlay.use_window_space,Performance Overlay,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ShaderLoadBgEnabled,video.shader_preloading_dialog.use_custom_background,Shader Loading Dialog,Yes,Standalone UI,,Standalone UI or host-window behavior; no direct core equivalent.
+ShaderLoadBgDarkening,video.shader_preloading_dialog.darkening_strength,Shader Loading Dialog,Yes,Standalone UI,,Standalone UI or host-window behavior; no direct core equivalent.
+ShaderLoadBgBlur,video.shader_preloading_dialog.blur_strength,Shader Loading Dialog,Yes,Standalone UI,,Standalone UI or host-window behavior; no direct core equivalent.
+CustomAnaglyphMatrixLeft,video.custom_anaglyph_matrices.left,Anaglyph matrix,No,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+CustomAnaglyphMatrixRight,video.custom_anaglyph_matrices.right,Anaglyph matrix,No,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+AudioRenderer,audio.renderer,Audio,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+DumpToFile,audio.dump_to_file,Audio,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ConvertTo16Bit,audio.convert_to_s16,Audio,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+AudioFormat,audio.format,Audio,Yes,Exposed,rpcs3_audio_format,Consolidated stereo/5.1/7.1 selector; not every standalone manual format is exposed.
+AudioFormats,audio.formats,Audio,Yes,Exposed,rpcs3_audio_format,Consolidated stereo/5.1/7.1 selector; not every standalone manual format is exposed.
+AudioProvider,audio.provider,Audio,Yes,Not Exposed,,Missing guest audio source selection; review cellAudio versus RSXAudio support before exposing.
+AudioAvport,audio.rsxaudio_port,Audio,Yes,Not Exposed,,Missing RSXAudio guest port selection; depends on source/backend support.
+AudioDevice,audio.audio_device,Audio,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+AudioChannelLayout,audio.channel_layout,Audio,Yes,Exposed,rpcs3_audio_format,Consolidated stereo/5.1/7.1 selector; not every standalone layout is exposed.
+MasterVolume,audio.volume,Audio,Yes,Exposed,rpcs3_master_volume,Connected to a core option; values may be consolidated.
+EnableBuffering,audio.enable_buffering,Audio,Yes,Frontend Or Port Policy,,Core intentionally disables the extra cellAudio buffer; frontend owns buffering.
+AudioBufferDuration,audio.desired_buffer_duration,Audio,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+EnableTimeStretching,audio.enable_time_stretching,Audio,Yes,Frontend Or Port Policy,,Core intentionally disables upstream stretching coupled to that extra buffer.
+TimeStretchingThreshold,audio.time_stretching_threshold,Audio,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+MicrophoneType,audio.microphone_type,Audio,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+MicrophoneDevices,audio.microphone_devices,Audio,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+MusicHandler,audio.music,Audio,Yes,Backend Work Required,,Core callback always returns null_music_handler; selector alone would not add music support.
+BackgroundInput,io.background_input_enabled,Input / Output,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+ShowMoveCursor,io.show_move_cursor,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+LockOvlIptToP1,io.lock_overlay_input_to_player_one,Input / Output,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PadHandlerMode,io.pad_mode,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+PadConnection,io.keep_pads_connected,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+KeyboardHandler,io.keyboard,Input / Output,Yes,Backend Work Required,,Core callback creates NullKeyboardHandler; requires a Libretro input implementation.
+MouseHandler,io.mouse,Input / Output,Yes,Backend Work Required,,Core callback creates NullMouseHandler; requires a Libretro input implementation.
+Camera,io.camera,Input / Output,Yes,Backend Work Required,,Core callback always returns null_camera_handler; selector alone would not add camera support.
+CameraType,io.camera_type,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+CameraFlip,io.camera_flip_option,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+CameraID,io.camera_id,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+Move,io.move,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+Buzz,io.buzz,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+Turntable,io.turntable,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+GHLtar,io.ghltar,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+USIO,io.usio_mode,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+MidiDevices,io.midi_devices,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+SDLMappings,io.load_sdl_mappings,Input / Output,No,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+MouseBasedGyro,io.mouse_based_gyro_enabled,Input / Output,Yes,Backend Work Required,,"Requires input/peripheral/backend implementation or validation, not only an option definition."
+IoDebugOverlay,io.pad_debug_overlay,Input / Output,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+MouseDebugOverlay,io.mouse_debug_overlay,Input / Output,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ExitRPCS3OnFinish,misc.autoexit,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+StartOnBoot,misc.autostart,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+PauseOnFocusLoss,misc.autopause,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+StartGameFullscreen,misc.start_fullscreen,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+StartBigPictureModeOnBoot,misc.start_big_picture_mode,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+PreventDisplaySleep,misc.prevent_display_sleep,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+ShowTrophyPopups,misc.show_trophy_popups,Misc,Yes,Exposed,rpcs3_show_trophy_popups,Connected to a core option; values may be consolidated.
+ShowRpcnPopups,misc.show_rpcn_popups,Misc,Yes,Exposed,rpcs3_show_rpcn_popups,Connected to a core option; values may be consolidated.
+UseNativeInterface,misc.use_native_interface,Misc,Yes,Standalone UI,,Core uses headless/overlay answers; standalone Qt dialogs cannot be enabled.
+UseRecursiveScan,misc.use_recursive_scan,Misc,Yes,Standalone UI,,Standalone UI or host-window behavior; no direct core equivalent.
+ShowShaderCompilationHint,misc.show_shader_compilation_hint,Misc,Yes,Exposed,rpcs3_show_shader_compilation_hint,Connected to a core option; values may be consolidated.
+ShowPPUCompilationHint,misc.show_ppu_compilation_hint,Misc,Yes,Exposed,rpcs3_show_ppu_compilation_hint,Connected to a core option; values may be consolidated.
+ShowAutosaveAutoloadHint,misc.show_autosave_autoload_hint,Misc,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ShowPressureIntensityToggleHint,misc.show_pressure_intensity_toggle_hint,Misc,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ShowAnalogLimiterToggleHint,misc.show_analog_limiter_toggle_hint,Misc,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ShowMouseAndKeyboardToggleHint,misc.show_mouse_and_keyboard_toggle_hint,Misc,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ShowFatalErrorHints,misc.show_fatal_error_hints,Misc,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ShowCaptureHints,misc.show_capture_hints,Misc,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+SilenceAllLogs,misc.silence_all_logs,Misc,Yes,Exposed,rpcs3_silence_all_logs,Connected to a core option; values may be consolidated.
+WindowTitleFormat,misc.title_format,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+PauseDuringHomeMenu,misc.pause_during_home_menu,Misc,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PlayMusicDuringBoot,misc.play_music_during_boot,Misc,Yes,Standalone UI,,Standalone UI or host-window behavior; no direct core equivalent.
+EnableGamemode,misc.enable_gamemode,Misc,Yes,Frontend Or Port Policy,,Frontend-owned or intentionally fixed by the port; not an automatically missing selector.
+InternetStatus,net.net_active,Networking,Yes,Exposed,rpcs3_network_enabled,Connected to a core option; values may be consolidated.
+DNSAddress,net.dns,Networking,Yes,Exposed,rpcs3_dns,Connected to a core option; values may be consolidated.
+IpSwapList,net.swap_list,Networking,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PSNStatus,net.psn_status,Networking,Yes,Exposed,rpcs3_psn_status,Connected to a core option; values may be consolidated.
+BindAddress,net.bind_address,Networking,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+EnableUpnp,net.upnp_enabled,Networking,Yes,Exposed,rpcs3_upnp,Connected to a core option; values may be consolidated.
+DeriveMacFromPsid,net.derive_mac_from_psid,Networking,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+PSNCountry,net.country,Networking,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+EnableClans,net.clans_enabled,Networking,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+LicenseArea,sys.license_area,System,Yes,Exposed,rpcs3_license_area,Connected to a core option; values may be consolidated.
+Language,sys.language,System,Yes,Exposed,rpcs3_language,Connected to a core option; values may be consolidated.
+KeyboardType,sys.keyboard_type,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+EnterButtonAssignment,sys.enter_button_assignment,System,Yes,Exposed,rpcs3_enter_button,Connected to a core option; values may be consolidated.
+DateFormat,sys.date_fmt,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+TimeFormat,sys.time_fmt,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+ConsoleTimeOffset,sys.console_time_offset,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+HDDModelName,sys.hdd_model,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+HDDSerialNumber,sys.hdd_serial,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+EnableHostRoot,vfs.host_root,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+EmptyHdd0Tmp,vfs.empty_hdd0_tmp,System,Yes,Not Exposed,,Potential candidate; default currently retained unless the game database or patches override it.
+LimitCacheSize,vfs.limit_cache_size,System,Yes,Exposed,rpcs3_disk_cache_size,Connected to a core option; values may be consolidated.
+MaximumCacheSize,vfs.cache_max_size,System,Yes,Exposed,rpcs3_disk_cache_size,Connected to a core option; values may be consolidated.
+EmulateHddSpeed,vfs.emulate_hdd_speed,System,Yes,Exposed,rpcs3_emulate_hdd_speed,Connected to a core option; values may be consolidated.
+EmulateBdvdSpeed,vfs.emulate_bdvd_speed,System,Yes,Exposed,rpcs3_emulate_bdvd_speed,Connected to a core option; values may be consolidated.
+SuspendEmulationSavestateMode,savestate.suspend_emu,Savestates,Yes,Save-State Work Required,,Requires real Libretro serialization/lifecycle support before exposing the preference.
+CompatibleEmulationSavestateMode,savestate.compatible_mode,Savestates,Yes,Save-State Work Required,,Requires real Libretro serialization/lifecycle support before exposing the preference.
+StartSavestatePaused,savestate.start_paused,Savestates,Yes,Save-State Work Required,,Requires real Libretro serialization/lifecycle support before exposing the preference.
+Log,log,Logs,Yes,Not Exposed,,Per-channel logging is not exposed; Silence All Logs and timing summaries are already options.
