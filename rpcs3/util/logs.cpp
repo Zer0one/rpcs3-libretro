@@ -423,29 +423,13 @@ void logs::message::broadcast(const char* fmt, const fmt_type_info* sup, ...) co
 	// Notify start operation
 	g_tls_log_control(fmt, 0);
 
-	// Get text, extract va_args
-	// exit() destroys the thread_local objects of the exiting thread before it runs static
-	// destructors (macOS dyld and glibc both do this), and static destructors may still log
-	// (e.g. sdl_instance). Fall back to local buffers once the thread_local ones are gone.
-	thread_local bool tls_destroyed = false;
-
-	struct tls_buffers
-	{
-		std::string text;
-		std::vector<u64> args;
-
-		~tls_buffers()
-		{
-			tls_destroyed = true;
-		}
-	};
-
-	thread_local tls_buffers tls;
-	std::string local_text;
-	std::vector<u64> local_args;
-
-	std::string& text = tls_destroyed ? local_text : tls.text;
-	std::vector<u64>& args = tls_destroyed ? local_args : tls.args;
+	// Get text, extract va_args. Plain locals, not thread_local: a
+	// thread_local with a destructor ties the library to the thread until
+	// it ends, and the libretro frontend's main thread logs here too and
+	// never ends, so the core was never unloaded and the next content ran
+	// on its old state
+	std::string text;
+	std::vector<u64> args;
 
 	static constexpr fmt_type_info empty_sup{};
 
@@ -833,19 +817,9 @@ logs::file_listener::file_listener(const std::string& path, u64 max_size)
 
 void logs::file_listener::log(u64 stamp, const logs::message& msg, std::string_view prefix, std::string_view _text)
 {
-	thread_local bool tls_destroyed = false;
-
-	struct tls_buffer
-	{
-		std::string text;
-		tls_buffer() { text.reserve(50000); }
-		~tls_buffer() { tls_destroyed = true; }
-	};
-
-	thread_local tls_buffer tls;
-	std::string local_text;
-	std::string& text = tls_destroyed ? local_text : tls.text;
-	text.clear();
+	// As in broadcast, a local buffer cannot pin the core to a frontend
+	// thread or be destroyed before a shutdown-time log message uses it.
+	std::string text;
 
 	// Used character: U+00B7 (Middle Dot)
 	switch (msg)

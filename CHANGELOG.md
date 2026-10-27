@@ -4,6 +4,8 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+- Merged the original Libretro port through `f62caced`: failed boots stop their started threads and release disc images, unsupported own-device Vulkan configurations are rejected before boot, and firmware names are recognized regardless of letter case. POSIX fault handlers are restored when the core unloads and unhandled faults are passed back to the frontend/system handler. Logging uses local buffers, including the file logger, so its buffers do not keep the core loaded or outlive their thread-local storage during shutdown.
+
 - Android publication is paused for future releases until further notice. New source tags require only the five Linux, Windows and macOS packages; existing v0.1.0.1/v0.1.0.2 tags retain their original seven-platform policy for reproducible recovery. Manual diagnostic Android builds remain available.
 
 ## v0.1.0.2 — 2026-10-26

@@ -12,7 +12,7 @@ The macOS core uses RetroArch's existing MoltenVK framework; no separate MoltenV
 
 The original [WizzardSK core](https://github.com/WizzardSK/rpcs3-libretro) is distributed through RetroArch's Online Updater for Linux (x86_64 and aarch64), Windows x64, macOS (Apple Silicon and Intel) and Android (arm64 and x86_64). Those buildbot packages do not identify this fork's numbered release. The inherited [Build libretro core](https://github.com/Zer0one/rpcs3-libretro/actions/workflows/libretro.yml) workflow can produce additional test artifacts on request. Gameplay validation recorded in this repository covers Apple Silicon macOS; remote builds do not establish gameplay on other systems.
 
-The PS3 firmware (`PS3UPDAT.PUP`, from playstation.com) goes into RetroArch's system directory as `system/rpcs3/PS3UPDAT.PUP`; the core installs it on first start.
+The PS3 firmware (`PS3UPDAT.PUP`, from playstation.com) goes into RetroArch's system directory as `system/rpcs3/PS3UPDAT.PUP`; the core installs it on first start. The firmware filename is recognized regardless of letter case.
 
 ### Licenses And Disc Keys
 
