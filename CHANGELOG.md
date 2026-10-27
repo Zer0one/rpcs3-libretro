@@ -4,6 +4,8 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+- Updated the emulation engine to RPCS3 v0.0.43-20410. This includes P2P receive-buffer/deadlock fixes, the cellRec PPU memory-allocation fix and IRD file-size validation. The core follows upstream's controller configuration structures; standalone GUI components remain excluded. Refreshed the bundled settings database from the official service; its timestamp and contents are unchanged.
+
 - Merged the original Libretro port through `f62caced`: failed boots stop their started threads and release disc images, unsupported own-device Vulkan configurations are rejected before boot, and firmware names are recognized regardless of letter case. POSIX fault handlers are restored when the core unloads and unhandled faults are passed back to the frontend/system handler. Logging uses local buffers, including the file logger, so its buffers do not keep the core loaded or outlive their thread-local storage during shutdown.
 
 - Android publication is paused for future releases until further notice. New source tags require only the five Linux, Windows and macOS packages; existing v0.1.0.1/v0.1.0.2 tags retain their original seven-platform policy for reproducible recovery. Manual diagnostic Android builds remain available.

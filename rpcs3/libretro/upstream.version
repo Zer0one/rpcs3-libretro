@@ -8,5 +8,9 @@
 #
 # Bump both lines in the same commit that merges upstream; CMake warns when the
 # recorded commit is not an ancestor of the tree being built.
-RPCS3_VERSION=v0.0.43-20400
-RPCS3_COMMIT=f848fd1e12aaba4f7c04bbd8642bfb9b5fae556c
+RPCS3_VERSION=v0.0.43-20410
+RPCS3_COMMIT=c365ea76a552961ff078ea1a46da9d4b07729674
+
+# Config database refreshed from https://api.rpcs3.net/config/?api=v1 at this merge.
+# Checked 2026-10-27: timestamp 1792728529, 2293 games; upstream bytes unchanged.
+# SHA-256: 4e3db92e0a86274eb437da29528f0d8ee8699f9ccad6d72f33f27b8f30ff55a5
