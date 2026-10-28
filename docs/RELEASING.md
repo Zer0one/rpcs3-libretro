@@ -39,6 +39,17 @@ An empty `release_tag` performs verification builds without publishing. The sepa
 
 ## Publication Gates
 
+The separate diagnostic `Build libretro core` workflow accepts `macos_arch` without publishing. For example, `gh workflow run libretro.yml --ref main -f platforms=macos -f macos_arch=arm64 -f keep_symbols=false` verifies the ARM64 build recipe on its own.
+
+For a single macOS architecture, recovery can set `macos_arch=arm64` or `x86_64` together with `platforms=macos` and a completed `reuse_run_id`. The other architecture and platforms are restored from that run; all five desktop packages remain mandatory. For example:
+
+```sh
+gh workflow run release.yml --repo Zer0one/rpcs3-libretro --ref main \
+  -f release_tag=v0.1.0.3 -f platforms=macos -f macos_arch=arm64 -f reuse_run_id=40727977617
+```
+
+The ARM64 job uses the macOS 26 hosted pool to avoid the observed macOS 15 runner-capacity failure. Its linked Homebrew libraries are explicitly fetched as checksum-verified `arm64_sequoia` bottles and installed only on an ephemeral GitHub-hosted runner. The dependency guard rejects any LLVM archive, MoltenVK or packaged zstd library requiring newer than macOS 15. The core still builds with deployment target 15.0; the newer host does not raise the advertised minimum. The package records the separate workflow and immutable source commits. Intel keeps its macOS 15 host.
+
 Publication waits for every build required by the tagged source policy. The manifest is read from that immutable source commit, not the workflow checkout, so recovery of old releases retains its original platform coverage. Every archive contains the canonical `rpcs3_libretro.so`, `.dll` or `.dylib`, matching `.info`, any packaged compression dependency, license, source commit, build metadata and payload checksums. The macOS packages reference the frontend's `@rpath/MoltenVK`; they do not include or install a Vulkan driver. Read each package's metadata for its minimum macOS version.
 
 The package helper checks machine architecture, Libretro entry-point names, embedded source identity, tag/commit alignment, expected payload files and checksums. The publishing job rejects a missing or mismatched platform package, creates aggregate `BUILD_INFO.json` and `SHA256SUMS`, and checks GitHub's uploaded-asset digests. It then publishes an ordinary **Latest** release. Existing release assets with the same names are refreshed only after the complete build and package gates pass. No personal access token is needed: builds use read permissions and only the publishing job requests `contents: write`.

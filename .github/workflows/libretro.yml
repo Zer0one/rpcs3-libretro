@@ -16,6 +16,11 @@ on:
         description: 'Leave symbols in the core for backtraces'
         type: boolean
         default: false
+      macos_arch:
+        description: 'macOS architecture for a diagnostic build'
+        type: choice
+        options: [all, arm64, x86_64]
+        default: all
   workflow_call:
     inputs:
       platforms:
@@ -35,6 +40,10 @@ on:
         description: 'Require every selected platform to succeed'
         type: boolean
         default: false
+      macos_arch:
+        description: 'Architecture to recover, or all for a complete macOS build'
+        type: string
+        default: all
 
 permissions:
   contents: read
@@ -431,18 +440,15 @@ jobs:
     # as the end of a function, and -Werror=return-type fails all over. Clang,
     # the LLVM the core links and GLEW from Homebrew, the prebuilt ffmpeg, curl
     # and wolfSSL from their submodules, and Vulkan through Homebrew's MoltenVK.
-    # Each architecture on its own runner, so Homebrew's libraries are its own.
+    # Each architecture uses native libraries. The newer ARM64 host uses explicit
+    # Sequoia bottles plus a deployment-target guard to retain macOS 15 support.
     name: libretro core macos-${{ matrix.arch }} (experimental)
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: arm64
-            runner: macos-15
-          - arch: x86_64
-            runner: macos-15-intel
+        include: ${{ fromJSON(inputs.macos_arch == 'arm64' && '[{"arch":"arm64","runner":"macos-26"}]' || inputs.macos_arch == 'x86_64' && '[{"arch":"x86_64","runner":"macos-15-intel"}]' || '[{"arch":"arm64","runner":"macos-26"},{"arch":"x86_64","runner":"macos-15-intel"}]') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -466,7 +472,12 @@ jobs:
       - name: Submodules
         run: git submodule -q update --init --depth 1 $(awk '/path/ && !/llvm/ && !/opencv/ && !/libsdl-org/ && !/zlib/ { print $3 }' .gitmodules)
 
+      - name: Sequoia dependencies on the ARM64 host
+        if: matrix.arch == 'arm64'
+        run: bash .release-tools/.ci/prepare-macos-release-deps.sh
+
       - name: Dependencies
+        if: matrix.arch == 'x86_64'
         run: |
           brew install ninja llvm@22 glew molten-vk vulkan-headers >/dev/null
           echo "LLVM=$(brew --prefix llvm@22)" >> $GITHUB_ENV

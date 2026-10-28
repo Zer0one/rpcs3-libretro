@@ -4,6 +4,8 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+- Release CI can recover one macOS architecture while reusing the other verified packages. ARM64 builds use the macOS 26 hosted pool with verified Sequoia dependency bottles; linked-library deployment targets are checked to retain the macOS 15 minimum despite the newer build host. Source release tags remain immutable.
+
 ## v0.1.0.3 — 2026-10-28
 
 - Every adjustable Core Option now identifies its default value with a `(Default)` label, including advanced controls and per-title patches. Markers follow the published platform/title defaults and retain translated value labels. Saved values, defaults and selection order are unchanged; legacy API 0 frontends show the default in the option description instead. The informational Patch Status row is unchanged.
