@@ -4,25 +4,26 @@ Review Date: 2026-10-26. This review covers the core changes included in v0.1.0.
 
 ## Libretro Conventions And Functional Organization
 
-The [deeper source comparison](ADVANCED_OPTIONS.md) documents real show/hide selectors in Snes9x, Genesis Plus GX and PCSX ReARMed. Those implementations use the selectors for flat menus and hide the selectors when V2 categories are available. RPCS3 deliberately keeps a single global selector available with categories too, to avoid splitting CPU/GPU into standard and advanced menus.
+The [deeper source comparison](ADVANCED_OPTIONS.md) documents real show/hide selectors in Snes9x, Genesis Plus GX and PCSX ReARMed. Those implementations use the selectors for flat menus and hide the selectors when V2 categories are available. RPCS3 keeps independent section-local selectors available with categories too, without splitting CPU/GPU into standard and advanced menus.
 
-**Show Advanced Options** (`rpcs3_show_advanced_options`) is at the top of Core Options and defaults to **Disabled**. Enabling it reveals advanced controls inside their functional groups. Disabling it only hides controls: definitions remain registered and their saved values remain active. The selector is independent of RetroArch's global Show Advanced Settings preference.
+**Show Advanced Options** appears immediately before the advanced controls inside CPU and GPU. A root **Show Advanced Sections** control follows the normal sections, including the always-present Patch Manager, and shows/hides Scheduling (Advanced), Timing (Advanced) and Diagnostics (Advanced) at the end. Those dedicated sections contain no internal selector. All three visibility preferences default to Disabled. Option classification, saved values and effects are unchanged; RetroArch's global advanced-settings preference is independent.
 
-There are **99 fixed options on macOS, 98 elsewhere**, including the new selector. All 98 previous macOS keys, allowed values and defaults are retained. English flat-menu labels carry functional prefixes; V2 categorized menus use short names. Existing translated short labels are retained and new category names fall back to English. Generated translation files and disabled Crowdin workflows are unchanged.
+The v0.1.0.2 review counted **99 fixed options on macOS, 98 elsewhere**, including the new selector. All 98 previous macOS keys, allowed values and defaults were retained. The subsequent Installed PSN Playlist option adds one normal System control, bringing those totals to **100 on macOS, 99 elsewhere**; it is a port-only convenience and does not change the historical standalone-field audit below. The final layout replaces the former global visibility control with two mixed-section controls and a root advanced-section gate, for current totals of **102 fixed options on macOS, 101 elsewhere**. Patch Manager adds game-dependent patch controls, or one informational status row when empty. English flat-menu labels carry functional prefixes; V2 categorized menus use short names. Existing translated short labels are retained and new category names fall back to English. Generated translation files and disabled Crowdin workflows are unchanged.
 
 | Group | Purpose |
 | --- | --- |
-| System | PKG launcher, compatibility database, language, region, confirm button and disk cache |
+| System | PKG launcher, installed PSN playlist, compatibility database, language, region, confirm button and disk cache |
 | CPU | Decoders, compilation, and advanced accuracy/CPU workarounds |
 | GPU | Renderer, image settings, and advanced graphics/driver controls |
-| Scheduling | Advanced thread placement, compiler parallelism and guest scheduling |
-| Timing | Advanced frame pacing/limits, VBlank, clocks, timers and original drive speeds |
 | Audio | Volume and the speaker layout advertised to games |
 | Network | Internet/PSN status, UPnP and DNS |
 | On-Screen Display | Performance overlay, compilation hints and notifications |
-| Diagnostics | Advanced timing summaries and log suppression |
+| Patch Manager | Per-title patch controls, or an informational availability row |
+| Scheduling (Advanced) | Advanced thread placement, compiler parallelism and guest scheduling |
+| Timing (Advanced) | Advanced frame pacing/limits, VBlank, clocks, timers and original drive speeds |
+| Diagnostics (Advanced) | Advanced timing summaries and log suppression |
 
-The eight formerly permanently hidden settings are now controlled by this selector: SPU Cache, Accurate DFMA, SPU Verification, MFC Commands Shuffling and HLE lwmutex (CPU); Driver Recovery Timeout (GPU); SPU Delay Penalty (Scheduling); VBlank NTSC Fixup (Timing). Patch Manager retains its existing independent game-specific/dependent visibility.
+The eight formerly permanently hidden settings are now controlled by their section selectors: SPU Cache, Accurate DFMA, SPU Verification, MFC Commands Shuffling and HLE lwmutex (CPU); Driver Recovery Timeout (GPU); SPU Delay Penalty (Scheduling); VBlank NTSC Fixup (Timing). Patch Manager retains its existing independent game-specific/dependent visibility.
 
 ## Standalone Cross-Check
 
@@ -39,7 +40,7 @@ The [standalone settings registry](https://github.com/RPCS3/rpcs3/blob/f848fd1e1
 | Standalone UI | 6 | Qt/host-window facilities with no direct core equivalent |
 | Save-State Work Required | 3 | Depend on Libretro serialization and lifecycle support |
 
-These are field counts, not a feature-completeness percentage: multiple standalone fields map to one core option, while eleven core options are port-specific or expose config fields outside this registry. The CSV is a settings-dialog/registry audit, not an exhaustive inventory of every RPCS3 YAML key. A main-dialog reference records a source reference, not proof that a widget is enabled for every renderer/platform. Library overrides are managed separately and are discussed below.
+These are field counts, not a feature-completeness percentage: multiple standalone fields map to one core option, while eleven core options in the v0.1.0.2 audit were port-specific or exposed config fields outside this registry. The CSV is a settings-dialog/registry audit, not an exhaustive inventory of every RPCS3 YAML key. A main-dialog reference records a source reference, not proof that a widget is enabled for every renderer/platform. Library overrides are managed separately and are discussed below.
 
 ### Compatibility Candidates To Review First
 
@@ -77,7 +78,7 @@ Existing default differences remain unchanged: the core defaults to asynchronous
 
 Frontend VSync, fullscreen/window behavior, final scaling, output-device selection and extra audio buffering/time stretching are not missing emulation toggles to copy blindly. The core intentionally uses the frontend for those responsibilities.
 
-## Validation And Limits
+## Historical v0.1.0.2 Validation And Limits
 
 - Native schema audit: unique keys, valid defaults, category membership/order, complete API 2/1/0 registration, English/Italian fallback and `HAVE_NO_LANGEXTRA`.
 - Before/after native contract comparison: all 98 existing macOS keys, allowed-value lists and defaults are identical; the new visibility selector is the only additional key.
@@ -90,12 +91,12 @@ Local build, source-reference hashes, native checks, canonical RetroArch deploym
 
 ## Fixed Option Inventory
 
-The MoltenVK option is macOS-only. Advanced controls are visible when Show Advanced Options is enabled. All settings keep their saved values while hidden.
+The MoltenVK option is macOS-only. CPU/GPU advanced controls are visible when their own section's Show Advanced Options is enabled; dedicated (Advanced) sections follow the root Show Advanced Sections gate. All settings keep their saved values while hidden.
 
 | Group | Option | Advanced | Saved Key |
 | --- | --- | --- | --- |
-| Top Level | Show Advanced Options | No | `rpcs3_show_advanced_options` |
 | System | PKG Launcher | No | `rpcs3_pkg_launcher` |
+| System | Installed PSN Playlist | No | `rpcs3_pkg_installed_playlist` |
 | System | Database Settings Override | No | `rpcs3_database_override` |
 | System | System Language | No | `rpcs3_language` |
 | System | Console Region | No | `rpcs3_license_area` |
@@ -104,6 +105,7 @@ The MoltenVK option is macOS-only. Advanced controls are visible when Show Advan
 | CPU | PPU Decoder | No | `rpcs3_ppu_decoder` |
 | CPU | SPU Decoder | No | `rpcs3_spu_decoder` |
 | CPU | PPU/SPU LLVM Precompilation | No | `rpcs3_llvm_precompilation` |
+| CPU | Show Advanced Options | No | `rpcs3_cpu_show_advanced_options` |
 | CPU | SPU XFloat Accuracy | Yes | `rpcs3_spu_xfloat_accuracy` |
 | CPU | SPU Block Size | Yes | `rpcs3_spu_block_size` |
 | CPU | Accurate RSX Reservation Access | Yes | `rpcs3_accurate_rsx_reservation` |
@@ -135,6 +137,7 @@ The MoltenVK option is macOS-only. Advanced controls are visible when Show Advan
 | GPU | Anisotropic Filtering | No | `rpcs3_anisotropic_filter` |
 | GPU | Anti-Aliasing | No | `rpcs3_msaa` |
 | GPU | Shader Mode | No | `rpcs3_shader_mode` |
+| GPU | Show Advanced Options | No | `rpcs3_gpu_show_advanced_options` |
 | GPU | MoltenVK Queue Submission | Yes | `rpcs3_moltenvk_queue_submission` |
 | GPU | ZCULL Accuracy | Yes | `rpcs3_zcull_accuracy` |
 | GPU | Shader Quality | Yes | `rpcs3_shader_quality` |
@@ -163,23 +166,6 @@ The MoltenVK option is macOS-only. Advanced controls are visible when Show Advan
 | GPU | Force CPU Blit Emulation | Yes | `rpcs3_cpu_blit` |
 | GPU | Force GPU Texture Scaling | Yes | `rpcs3_gpu_texture_scaling` |
 | GPU | Framebuffer Aliasing Heuristic Bias | Yes | `rpcs3_fb_aliasing_bias` |
-| Scheduling | Thread Scheduler | Yes | `rpcs3_thread_scheduler` |
-| Scheduling | Preferred SPU Threads | Yes | `rpcs3_preferred_spu_threads` |
-| Scheduling | PPU/SPU LLVM Compiler Threads | Yes | `rpcs3_llvm_threads` |
-| Scheduling | Shader Compiler Threads | Yes | `rpcs3_shader_compiler_threads` |
-| Scheduling | PPU Thread Count | Yes | `rpcs3_ppu_threads` |
-| Scheduling | Maximum Number of SPURS Threads | Yes | `rpcs3_max_spurs_threads` |
-| Scheduling | Max Power Saving CPU-Preemptions | Yes | `rpcs3_max_preempt_count` |
-| Scheduling | SPU Delay Penalty | Yes | `rpcs3_spu_delay_penalty` |
-| Scheduling | Enable SPU Events Busy Loop | Yes | `rpcs3_spu_events_busy_loop` |
-| Timing | Frame Pacing | Yes | `rpcs3_frame_pacing` |
-| Timing | Frame Limit | Yes | `rpcs3_frame_limit` |
-| Timing | VBlank Frequency | Yes | `rpcs3_vblank_rate` |
-| Timing | VBlank NTSC Fixup | Yes | `rpcs3_vblank_ntsc` |
-| Timing | Clocks Scale | Yes | `rpcs3_clocks_scale` |
-| Timing | Sleep Timers Accuracy | Yes | `rpcs3_sleep_timers_accuracy` |
-| Timing | Emulate HDD Read Speed | Yes | `rpcs3_emulate_hdd_speed` |
-| Timing | Emulate BD-ROM Read Speed | Yes | `rpcs3_emulate_bdvd_speed` |
 | Audio | Master Volume | No | `rpcs3_master_volume` |
 | Audio | Audio Format | No | `rpcs3_audio_format` |
 | Network | Network Enabled | No | `rpcs3_network_enabled` |
@@ -191,5 +177,23 @@ The MoltenVK option is macOS-only. Advanced controls are visible when Show Advan
 | On-Screen Display | Show Shader Compilation Hint | No | `rpcs3_show_shader_compilation_hint` |
 | On-Screen Display | Show Trophy Popups | No | `rpcs3_show_trophy_popups` |
 | On-Screen Display | Show RPCN Popups | No | `rpcs3_show_rpcn_popups` |
-| Diagnostics | Performance Timing Log | Yes | `rpcs3_timing_log` |
-| Diagnostics | Silence All Logs | Yes | `rpcs3_silence_all_logs` |
+| Top Level | Show Advanced Sections | No | `rpcs3_show_advanced_sections` |
+| Scheduling (Advanced) | Thread Scheduler | Yes | `rpcs3_thread_scheduler` |
+| Scheduling (Advanced) | Preferred SPU Threads | Yes | `rpcs3_preferred_spu_threads` |
+| Scheduling (Advanced) | PPU/SPU LLVM Compiler Threads | Yes | `rpcs3_llvm_threads` |
+| Scheduling (Advanced) | Shader Compiler Threads | Yes | `rpcs3_shader_compiler_threads` |
+| Scheduling (Advanced) | PPU Thread Count | Yes | `rpcs3_ppu_threads` |
+| Scheduling (Advanced) | Maximum Number of SPURS Threads | Yes | `rpcs3_max_spurs_threads` |
+| Scheduling (Advanced) | Max Power Saving CPU-Preemptions | Yes | `rpcs3_max_preempt_count` |
+| Scheduling (Advanced) | SPU Delay Penalty | Yes | `rpcs3_spu_delay_penalty` |
+| Scheduling (Advanced) | Enable SPU Events Busy Loop | Yes | `rpcs3_spu_events_busy_loop` |
+| Timing (Advanced) | Frame Pacing | Yes | `rpcs3_frame_pacing` |
+| Timing (Advanced) | Frame Limit | Yes | `rpcs3_frame_limit` |
+| Timing (Advanced) | VBlank Frequency | Yes | `rpcs3_vblank_rate` |
+| Timing (Advanced) | VBlank NTSC Fixup | Yes | `rpcs3_vblank_ntsc` |
+| Timing (Advanced) | Clocks Scale | Yes | `rpcs3_clocks_scale` |
+| Timing (Advanced) | Sleep Timers Accuracy | Yes | `rpcs3_sleep_timers_accuracy` |
+| Timing (Advanced) | Emulate HDD Read Speed | Yes | `rpcs3_emulate_hdd_speed` |
+| Timing (Advanced) | Emulate BD-ROM Read Speed | Yes | `rpcs3_emulate_bdvd_speed` |
+| Diagnostics (Advanced) | Performance Timing Log | Yes | `rpcs3_timing_log` |
+| Diagnostics (Advanced) | Silence All Logs | Yes | `rpcs3_silence_all_logs` |

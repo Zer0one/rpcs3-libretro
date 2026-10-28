@@ -11,6 +11,7 @@
 #include "libretro_option_visibility.h"
 #include "libretro_patch_manager.h"
 #include "libretro_pkg_link.h"
+#include "libretro_installed_playlist.h"
 #include "libretro_content_keys.h"
 #include "Loader/PSF.h"
 
@@ -97,6 +98,7 @@
 #include <vector>
 #include <algorithm>
 #include <cctype>
+#include <stdexcept>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -575,6 +577,91 @@ static std::string get_option_value(const char* key, const char* default_val = "
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
         return var.value;
     return default_val;
+}
+
+// Called after successful extraction or when a PKG resolves to an existing
+// installation, on the frontend thread. Playlist failure must not block either.
+static libretro_installed_playlist::status update_installed_pkg_playlist(const std::string& pkg_path)
+{
+    using status = libretro_installed_playlist::status;
+    if (get_option_value("rpcs3_pkg_installed_playlist", "enabled") != "enabled")
+        return status::unchanged;
+    try
+    {
+        std::string game_dir;
+        bool base_game = false;
+        // Inspect with launcher resolution enabled even when PKG Launcher is
+        // disabled: playlist maintenance and installation-only mode are separate.
+        if (resolve_pkg_installation(pkg_path, game_dir, true, base_game) != libretro_pkg::route::launch || !base_game)
+            return status::unchanged; // DLC, updates and incomplete installations are not games.
+
+        const std::string sfo_path = game_dir + "/PARAM.SFO";
+        std::string frontend_name;
+        if (pkg_path.find("://") != std::string::npos)
+        {
+            const retro_game_info_ext* extended = nullptr;
+            if (environ_cb(RETRO_ENVIRONMENT_GET_GAME_INFO_EXT, &extended) && extended &&
+                !extended->file_in_archive && extended->name)
+                frontend_name = extended->name;
+        }
+        const std::string title = libretro_installed_playlist::package_label(pkg_path, frontend_name);
+
+        const char* frontend_path = nullptr;
+        if (!environ_cb(RETRO_ENVIRONMENT_GET_PLAYLIST_DIRECTORY, &frontend_path) || !frontend_path || !*frontend_path)
+            throw std::runtime_error("frontend did not provide its playlist directory");
+        std::string directory(frontend_path);
+        if (directory.back() != '/' && directory.back() != '\\') directory += '/';
+        const std::string playlist = directory + std::string(libretro_installed_playlist::filename);
+        frontend_path = nullptr;
+        if (!environ_cb(RETRO_ENVIRONMENT_GET_LIBRETRO_PATH, &frontend_path) || !frontend_path || !*frontend_path)
+            throw std::runtime_error("frontend did not provide the loaded core path");
+        const libretro_installed_playlist::entry game{sfo_path, title, frontend_path};
+
+        fs::file previous(playlist);
+        const bool exists = !!previous;
+        if (!exists && fs::g_tls_error != fs::error::noent)
+            throw std::runtime_error("existing playlist could not be read");
+        if (exists && previous.size() > libretro_installed_playlist::max_size)
+            throw std::runtime_error("existing playlist exceeds the size limit");
+        const std::string before = exists ? previous.to_string() : std::string{};
+        previous.close();
+        const auto result = libretro_installed_playlist::update(before, exists, game);
+        if (result.state == libretro_installed_playlist::status::invalid)
+            throw std::runtime_error(result.error);
+        if (result.state == status::unowned)
+        {
+            if (log_cb)
+                log_cb(RETRO_LOG_WARN, "RPCS3: installed PSN playlist name is already in use; leaving %s unchanged (no ownership marker)\n", playlist.c_str());
+            return status::unowned;
+        }
+        if (result.state == libretro_installed_playlist::status::unchanged)
+            return status::unchanged;
+        if (!fs::create_path(directory))
+            throw std::runtime_error("playlist directory could not be created");
+
+        // RPCS3's existing atomic writer follows RetroArch's playlist strategy:
+        // write beside the destination, then replace it only after a full write.
+        fs::pending_file pending(playlist);
+        if (!pending.file || pending.file.write(result.json.data(), result.json.size()) != result.json.size())
+            throw std::runtime_error("playlist temporary file could not be written");
+        if (exists)
+        {
+            fs::file current(playlist);
+            if (!current || current.size() != before.size() || current.to_string() != before)
+                throw std::runtime_error("playlist changed while its update was being prepared");
+        }
+        if (!pending.commit(exists))
+            throw std::runtime_error("playlist update could not be committed");
+        if (log_cb)
+            log_cb(RETRO_LOG_INFO, "RPCS3: installed PSN playlist updated: %s -> %s\n", title.c_str(), sfo_path.c_str());
+        return status::updated;
+    }
+    catch (const std::exception& error)
+    {
+        if (log_cb)
+            log_cb(RETRO_LOG_WARN, "RPCS3: PKG installed, but installed PSN playlist was left unchanged: %s\n", error.what());
+        return status::invalid;
+    }
 }
 
 #ifdef __APPLE__
@@ -1561,7 +1648,7 @@ static void libretro_big_little_defaults()
 static bool RETRO_CALLCONV libretro_update_options_display()
 {
     const bool changed = libretro_option_visibility::update(environ_cb,
-        get_option_value("rpcs3_show_advanced_options", "disabled") == "enabled");
+        option_defs_us, [](const char* key) { return get_option_value(key, "disabled") == "enabled"; });
     libretro_patches::update_display(environ_cb, [](const char* key) { return get_option_value(key, "disabled"); });
     return changed || libretro_patches::any();
 }
@@ -1593,12 +1680,10 @@ static void publish_core_options(retro_environment_t cb)
     static std::vector<retro_core_option_v2_category> categories;
     all = fixed;
     categories = fixed_categories;
-    if (libretro_patches::any())
-    {
-        const auto& patches = libretro_patches::definitions();
-        all.insert(all.end(), patches.begin(), patches.end());
-        categories.push_back({"patches", "Patch Manager", "The game's patches from RPCS3's patch files, patch.yml and imported_patch.yml. A change applies at the next start of the game."});
-    }
+    const auto& patches = libretro_patches::definitions();
+    all.insert(all.end(), patches.begin(), patches.end());
+    categories.push_back({"patches", "Patch Manager", "The game's patches from RPCS3's patch files, patch.yml and imported_patch.yml. Status is shown when none are listed. A change applies at the next start of the game."});
+    libretro_option_visibility::move_advanced_sections_last(all, categories, option_defs_us);
     all.push_back({});
     categories.push_back({});
     options_us.definitions = all.data();
@@ -1608,9 +1693,10 @@ static void publish_core_options(retro_environment_t cb)
     libretro_set_core_options(cb, &categories_supported);
 
     // Reapply after every publication, including when the frontend replaces its
-    // option list at game load. The root selector also works with V2 categories.
+    // option list at game load. Mixed sections keep their selector before its targets;
+    // dedicated advanced sections follow their shared root visibility switch.
     libretro_option_visibility::update(cb,
-        get_option_value("rpcs3_show_advanced_options", "disabled") == "enabled", true);
+        option_defs_us, [](const char* key) { return get_option_value(key, "disabled") == "enabled"; }, true);
     struct retro_core_options_update_display_callback update_display{libretro_update_options_display};
     cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK, &update_display);
     libretro_patches::update_display(cb, [](const char* key) { return get_option_value(key, "disabled"); });
@@ -2147,6 +2233,7 @@ void retro_deinit(void)
 
     Emulator::CleanUp();
     libretro_content_keys::set_pkg_directory({});
+    libretro_patches::clear();
     core_initialized = false;
     game_loaded = false;
 
@@ -2983,6 +3070,13 @@ bool retro_load_game(const struct retro_game_info* game)
         }
         if (route == libretro_pkg::route::launch)
         {
+            const auto playlist_result = update_installed_pkg_playlist(game_path);
+            if (playlist_result == libretro_installed_playlist::status::updated)
+                libretro_show_message("Installed PSN playlist updated", 600);
+            else if (playlist_result == libretro_installed_playlist::status::unowned)
+                libretro_show_message("Playlist name already in use; existing playlist left unchanged (no RPCS3 marker)", 600);
+            else if (playlist_result == libretro_installed_playlist::status::invalid)
+                libretro_show_message("Installed PSN playlist could not be updated; see log", 600);
             if (log_cb)
                 log_cb(RETRO_LOG_INFO, "RPCS3: PKG %s resolves to installed game %s\n", game_path.c_str(), installed_game.c_str());
             game_path = installed_game;
@@ -2993,6 +3087,7 @@ bool retro_load_game(const struct retro_game_info* game)
             if (!install_pkg_file(game_path, installed_eboot))
                 return false;
 
+            const auto playlist_result = update_installed_pkg_playlist(game_path);
             std::string message;
             if (installed_eboot.empty())
             {
@@ -3006,6 +3101,12 @@ bool retro_load_game(const struct retro_game_info* game)
                     ? "PKG installed. Reopen the game PKG to play, or open " + game_dir + "/PARAM.SFO"
                     : "PKG installed. Start it from " + game_dir + "/PARAM.SFO";
             }
+            if (playlist_result == libretro_installed_playlist::status::updated)
+                message += ". Installed PSN playlist updated";
+            else if (playlist_result == libretro_installed_playlist::status::unowned)
+                message = "PKG installed. Playlist name already in use; existing playlist left unchanged (no RPCS3 marker)";
+            else if (playlist_result == libretro_installed_playlist::status::invalid)
+                message = "PKG installed. Installed PSN playlist could not be updated; see log";
             if (log_cb)
                 log_cb(RETRO_LOG_INFO, "RPCS3: %s\n", message.c_str());
             libretro_show_message(message.c_str(), 600);
@@ -3222,8 +3323,7 @@ bool retro_load_game(const struct retro_game_info* game)
     // The Patch Manager for this game, now that its serial and the patch files
     // are there
     libretro_patches::collect(game_serial(game_path));
-    if (libretro_patches::any())
-        publish_core_options(environ_cb);
+    publish_core_options(environ_cb);
 
     // For null renderer, boot immediately. For OpenGL, defer until
     // context_reset(). The software path has no context coming, so it boots
@@ -3462,6 +3562,9 @@ void retro_unload_game(void)
     }
 
     libretro_content_keys::set_pkg_directory({});
+    libretro_patches::clear();
+    if (environ_cb)
+        publish_core_options(environ_cb);
 }
 
 void retro_run(void)

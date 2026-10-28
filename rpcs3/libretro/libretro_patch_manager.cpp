@@ -1,7 +1,7 @@
 // RPCS3's game patches as core options, the way the cemu core lists a title's
 // graphic packs: once the game is known, the patches for its serial become
-// options of their own in a last category, Patch Manager, which is not there
-// for a game without any (NNshi).
+// options of their own in Patch Manager. The category is always present; with
+// no listed patches it shows informational status instead of adjustable controls.
 //
 // - Every patch is an Enabled/Disabled switch with its own notes, off unless
 //   turned on, as standalone lists them.
@@ -78,6 +78,7 @@ static const std::map<std::string_view, std::vector<std::string_view>> s_multiga
 };
 
     std::string s_serial;
+    bool s_title_loaded = false;
     std::map<std::string, std::string> s_last_values; // what a group's switches were, to see which one was turned on
     patch_engine::patch_map s_map;
     std::vector<patch_option> s_options;
@@ -146,6 +147,7 @@ namespace libretro_patches
 {
     void collect(const std::string& serial)
     {
+        s_title_loaded = true;
         s_serial = serial;
         s_map.clear();
         s_options.clear();
@@ -261,6 +263,12 @@ namespace libretro_patches
         lr_patch_log.notice("%u patch options for %s", s_options.size(), serial);
     }
 
+    void clear()
+    {
+        collect({});
+        s_title_loaded = false;
+    }
+
     bool any()
     {
         return !s_options.empty();
@@ -268,6 +276,12 @@ namespace libretro_patches
 
     const std::vector<retro_core_option_v2_definition>& definitions()
     {
+        if (s_definitions.empty())
+        {
+            static const std::vector<retro_core_option_v2_definition> no_title{unavailable_status(false)};
+            static const std::vector<retro_core_option_v2_definition> no_patches{unavailable_status(true)};
+            return s_title_loaded ? no_patches : no_title;
+        }
         return s_definitions;
     }
 

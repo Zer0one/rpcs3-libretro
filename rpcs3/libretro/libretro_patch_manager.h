@@ -17,11 +17,32 @@ namespace libretro_patches
 	// game's own <serial>_patch.yml have for its serial. Empty clears them.
 	void collect(const std::string& serial);
 
-	// Whether the collected game has any patches (and so the category)
+	// Clear the collected title and return the informational status to no title.
+	void clear();
+
+	// Informational single-value field, not an adjustable patch setting. RetroArch
+	// hides categories with no visible items, so this keeps an empty manager visible.
+	inline retro_core_option_v2_definition unavailable_status(bool title_loaded)
+	{
+		retro_core_option_v2_definition status{};
+		status.key = "rpcs3_patch_status";
+		status.desc = "Patch Manager: Patch Status";
+		status.desc_categorized = "Patch Status";
+		status.category_key = "patches";
+		status.info = "Informational status from the collected patch catalog, not a patch setting. No listed patches does not mean the game is unsupported.";
+		// The value itself is readable too: API 0 has no separate value labels.
+		const char* message = title_loaded ? "No patches available for this title" : "Load a title to check for patches";
+		status.values[0] = {message, message};
+		status.default_value = status.values[0].value;
+		return status;
+	}
+
+	// Whether the collected game has actionable patches (the category is always present).
 	bool any();
 
 	// The options for the collected patches, to be declared after the fixed
-	// ones. The pointers stay valid until the next collect().
+	// ones, or one informational status when none are available. Pointers stay
+	// valid until the next collect()/clear().
 	const std::vector<retro_core_option_v2_definition>& definitions();
 
 	// Shows the value choices of a patch only while the patch is on

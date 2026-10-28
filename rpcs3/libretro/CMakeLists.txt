@@ -22,6 +22,7 @@ libretro_embed_vblank_unlock(${CMAKE_CURRENT_BINARY_DIR}/libretro_vblank_unlock.
 
 add_library(rpcs3_libretro SHARED
     libretro_core.cpp
+    libretro_installed_playlist.cpp
     libretro_metrics.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/libretro_ui_icons.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/libretro_config_database.cpp

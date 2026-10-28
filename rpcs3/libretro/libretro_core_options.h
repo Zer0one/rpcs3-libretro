@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "libretro.h"
+#include "libretro_option_labels.h"
 
 #ifndef HAVE_NO_LANGEXTRA
 #include "libretro_core_options_intl.h"
@@ -55,26 +56,25 @@ struct retro_core_option_v2_category option_cats_us[] = {
     { "system", "System", "Language, region, content installation, compatibility database and disk cache." },
     { "cpu", "CPU", "Decoders, compilation and advanced CPU accuracy/workarounds." },
     { "gpu", "GPU", "Renderer, resolution, shaders and advanced graphics compatibility controls." },
-    { "scheduling", "Scheduling", "Thread placement, compiler parallelism and guest thread scheduling." },
-    { "timing", "Timing", "Guest clocks, VBlank, frame pacing, timers and original drive speeds." },
     { "audio", "Audio", "Output level and the speaker layout presented to games." },
     { "network", "Network", "Network connectivity, PSN status, UPnP and DNS." },
     { "interface", "On-Screen Display", "Performance overlay, compilation hints and game notifications." },
-    { "diagnostics", "Diagnostics", "Performance measurements and logging controls for investigating problems." },
+    { "scheduling", "Scheduling (Advanced)", "Thread placement, compiler parallelism and guest thread scheduling." },
+    { "timing", "Timing (Advanced)", "Guest clocks, VBlank, frame pacing, timers and original drive speeds." },
+    { "diagnostics", "Diagnostics (Advanced)", "Performance measurements and logging controls for investigating problems." },
     { NULL, NULL, NULL }
 };
 
 // One group per function. Advanced status is handled by the display helper,
 // without removing definitions or changing their saved values/defaults.
+// Section-local visibility controls precede their targets, including when the
+// frontend renders a flat API 0/1 menu. These preferences never change emulation values.
+#define RPCS3_ADVANCED_SELECTOR(category, label) \
+    { "rpcs3_" category "_show_advanced_options", label ": Show Advanced Options", "Show Advanced Options", \
+      "Show advanced controls in this section only. Hiding them preserves their saved values and effects. Reopen Core Options if the frontend does not refresh immediately.", \
+      NULL, category, { {"disabled", "Disabled"}, {"enabled", "Enabled"}, {NULL, NULL} }, "disabled" },
+
 struct retro_core_option_v2_definition option_defs_us[] = {
-    {
-        "rpcs3_show_advanced_options", "Show Advanced Options", NULL,
-        "Show low-level accuracy, compatibility, scheduling, timing and diagnostic settings inside their functional groups. Hiding them only changes menu visibility: saved values remain active. Independent of RetroArch's global Show Advanced Settings. Reopen Core Options if the frontend does not refresh immediately.",
-        NULL, NULL,
-        { {"disabled", "Disabled"}, {"enabled", "Enabled"}, {NULL, NULL} },
-        // Port-only menu preference; advanced controls are opt-in.
-        "disabled"
-    },
     // ==================== SYSTEM ====================
     {
         "rpcs3_pkg_launcher", "System: PKG Launcher", "PKG Launcher",
@@ -83,6 +83,15 @@ struct retro_core_option_v2_definition option_defs_us[] = {
         { {"enabled", "Enabled"}, {"disabled", "Disabled"}, {NULL, NULL} },
         // Port-only convenience: enabled keeps the PKG as the stable playlist
         // identity. Disabled restores standalone-style installation-only use.
+        "enabled"
+    },
+    {
+        "rpcs3_pkg_installed_playlist", "System: Installed PSN Playlist", "Installed PSN Playlist",
+        "When a base PS3 PSN game PKG installs successfully or resolves to an existing installation, add or update its installed PARAM.SFO entry in Sony - PlayStation 3 (PSN Installed). The matching entry is labeled with the source PKG filename without its extension on every opening. Reopening the PKG can recreate a deleted playlist without reinstalling. Only playlists carrying the core's ownership marker are updated; a same-name user playlist is left unchanged with a notification. Existing entries are not duplicated. Independent of PKG Launcher; direct installed-game launch uses central or existing HDD RAP licenses. Disable to leave playlists untouched. Requires frontend playlist-directory support and uncompressed JSON playlists.",
+        NULL, "system",
+        { {"enabled", "Enabled"}, {"disabled", "Disabled"}, {NULL, NULL} },
+        // Port-only post-install convenience, enabled as requested. No
+        // standalone equivalent and no automatic modification of other lists.
         "enabled"
     },
     {
@@ -142,6 +151,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
         { {"enabled", NULL}, {"disabled", NULL}, {NULL, NULL} },
         "enabled"
     },
+    RPCS3_ADVANCED_SELECTOR("cpu", "CPU")
     {
         "rpcs3_spu_xfloat_accuracy", "CPU: SPU XFloat Accuracy", "SPU XFloat Accuracy",
         "SPU floating-point accuracy level.",
@@ -360,6 +370,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
         { {"async", "Async (Recommended)"}, {"async_interpreter", "Async with Shader Interpreter (no stalls)"}, {"async_recompiler", "Async with Recompiler"}, {"interpreter", "Shader Interpreter only"}, {"sync", "Synchronous"}, {NULL, NULL} },
         "async"
     },
+    RPCS3_ADVANCED_SELECTOR("gpu", "GPU")
 #ifdef __APPLE__
     {
         "rpcs3_moltenvk_queue_submission", "GPU: MoltenVK Queue Submission", "MoltenVK Queue Submission",
@@ -560,127 +571,6 @@ struct retro_core_option_v2_definition option_defs_us[] = {
         { {"auto", "Auto"}, {"color", "Prefer Color"}, {"depth", "Prefer Depth"}, {NULL, NULL} },
         "auto"
     },
-    // ==================== SCHEDULING ====================
-    {
-        "rpcs3_thread_scheduler", "Scheduling: Thread Scheduler", "Thread Scheduler",
-        "Who places the emulator's threads on the CPU's cores, as in RPCS3. Operating System leaves it to the system; the RPCS3 schedulers pin PPU, SPU and RSX threads to cores of their own, laid out for a few desktop CPUs. Has no effect on Android, where the core cannot pin threads.",
-        NULL, "scheduling",
-        { {"os", "Operating System"}, {"old", "RPCS3 Scheduler"}, {"alt", "RPCS3 Alternative Scheduler"}, {NULL, NULL} },
-        "os"
-    },
-    {
-        "rpcs3_preferred_spu_threads", "Scheduling: Preferred SPU Threads", "Preferred SPU Threads",
-        "Number of SPU threads. Auto recommended.",
-        NULL, "scheduling",
-        { {"0", "Auto"}, {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"}, {"6", "6"}, {NULL, NULL} },
-        "0"
-    },
-    {
-        "rpcs3_llvm_threads", "Scheduling: PPU/SPU LLVM Compiler Threads", "PPU/SPU LLVM Compiler Threads",
-        "How many threads compile PPU and SPU code with LLVM, as RPCS3's Max LLVM Compile Threads. Auto uses every core; fewer keeps a phone cooler and uses less memory while a game is compiled, and makes it take longer. On ARM CPUs with efficiency cores (most phones, some ARM laptops) the default leaves those out.",
-        NULL, "scheduling",
-        { {"0", "Auto"}, {"1", NULL}, {"2", NULL}, {"3", NULL}, {"4", NULL}, {"6", NULL}, {"8", NULL}, {NULL, NULL} },
-        "0"
-    },
-    {
-        "rpcs3_shader_compiler_threads", "Scheduling: Shader Compiler Threads", "Shader Compiler Threads",
-        "How many threads compile shaders. Auto lets RPCS3 decide from the CPU it sees. On ARM CPUs with efficiency cores (most phones, some ARM laptops) the default leaves those out.",
-        NULL, "scheduling",
-        { {"auto", "Auto"}, {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"6", "6"}, {"8", "8"}, {NULL, NULL} },
-        "auto"
-    },
-    {
-        "rpcs3_ppu_threads", "Scheduling: PPU Thread Count", "PPU Thread Count",
-        "How many PPU threads run at once, as in RPCS3. 2 is the default and what nearly every game wants.",
-        NULL, "scheduling",
-        { {"1", NULL}, {"2", "2 (Default)"}, {"3", NULL}, {"4", NULL}, {"5", NULL}, {"6", NULL}, {"7", NULL}, {"8", NULL}, {NULL, NULL} },
-        "2"
-    },
-    {
-        "rpcs3_max_spurs_threads", "Scheduling: Maximum Number of SPURS Threads", "Maximum Number of SPURS Threads",
-        "Maximum SPURS thread count. Lower may improve performance.",
-        NULL, "scheduling",
-        { {"auto", "Auto"}, {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"}, {"6", "6"}, {NULL, NULL} },
-        "auto"
-    },
-    {
-        "rpcs3_max_preempt_count", "Scheduling: Max Power Saving CPU-Preemptions", "Max Power Saving CPU-Preemptions",
-        "How many times a frame RPCS3 may pause the CPU threads to save power, as in RPCS3. 0 turns it off.",
-        NULL, "scheduling",
-        { {"0", "0 (Disabled)"}, {"10", NULL}, {"20", NULL}, {"50", NULL}, {"100", NULL}, {"200", NULL}, {"400", NULL}, {NULL, NULL} },
-        "0"
-    },
-    {
-        "rpcs3_spu_delay_penalty", "Scheduling: SPU Delay Penalty", "SPU Delay Penalty",
-        "SPU delay penalty for scheduling.",
-        NULL, "scheduling",
-        { {"0", "0"}, {"1", "1"}, {"2", "2"}, {"3", "3 (Default)"}, {"4", "4"}, {"5", "5"}, {NULL, NULL} },
-        "3"
-    },
-    {
-        "rpcs3_spu_events_busy_loop", "Scheduling: Enable SPU Events Busy Loop", "Enable SPU Events Busy Loop",
-        "Lets SPU threads spin while they wait for events instead of sleeping. Can help a few games, costs CPU time.",
-        NULL, "scheduling",
-        { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
-        "disabled"
-    },
-    // ==================== TIMING ====================
-    {
-        "rpcs3_frame_pacing", "Timing: Frame Pacing", "Frame Pacing",
-        "What the game's frames are timed by. Emulator clock is RPCS3's own timer, as in standalone RPCS3. RetroArch gives the game one PS3 refresh per frame RetroArch shows, so fast-forward speeds the game up and the game runs at the VBlank Frequency when RetroArch shows that many frames a second.",
-        NULL, "timing",
-        { {"frontend", "RetroArch"}, {"emulator", "Emulator clock"}, {NULL, NULL} },
-        "emulator"
-    },
-    {
-        "rpcs3_frame_limit", "Timing: Frame Limit", "Frame Limit",
-        "Highest frame rate the game may run at. Auto is the VBlank Frequency, as in RPCS3; PS3 Native paces flips the way the PS3 does; Off lets games that do not wait for the PS3's refresh themselves run too fast.",
-        NULL, "timing",
-        { {"auto", "Auto"}, {"ps3", "PS3 Native"}, {"off", "Off"}, {"30", "30 FPS"}, {"50", "50 FPS"}, {"60", "60 FPS"}, {"120", "120 FPS"}, {"144", "144 FPS"}, {"240", "240 FPS"}, {NULL, NULL} },
-        "auto"
-    },
-    {
-        "rpcs3_vblank_rate", "Timing: VBlank Frequency", "VBlank Frequency",
-        "The PS3's refresh rate in Hz. It is also the frame rate the core asks RetroArch for, which takes effect when content is loaded; games that can run above 60 FPS need a display that refreshes that fast. \"From List\" doubles Vblank rate for supported games listed in vblank_unlock.txt found in system/rpcs3. You may need to apply per-game patches.",
-        NULL, "timing",
-        { {"50", "50 Hz (PAL)"}, {"60", "60 Hz (NTSC)"}, {"120", "120 Hz"}, {"144", "144 Hz"}, {"240", "240 Hz"}, {"list", "From List"}, {NULL, NULL} },
-        "60"
-    },
-    {
-        "rpcs3_vblank_ntsc", "Timing: VBlank NTSC Fixup", "VBlank NTSC Fixup",
-        "Run the VBlank Frequency at the NTSC rate (59.94 Hz for 60) instead of the round number. On by default, as in RPCS3.",
-        NULL, "timing",
-        { {"enabled", NULL}, {"disabled", NULL}, {NULL, NULL} },
-        "enabled"
-    },
-    {
-        "rpcs3_clocks_scale", "Timing: Clocks Scale", "Clocks Scale",
-        "Scale PS3 clock speed percentage.",
-        NULL, "timing",
-        { {"50", "50%"}, {"75", "75%"}, {"100", "100%"}, {"150", "150%"}, {"200", "200%"}, {"300", "300%"}, {NULL, NULL} },
-        "100"
-    },
-    {
-        "rpcs3_sleep_timers_accuracy", "Timing: Sleep Timers Accuracy", "Sleep Timers Accuracy",
-        "Sleep timers accuracy level.",
-        NULL, "timing",
-        { {"auto", "Automatic"}, {"as_host", "As Host"}, {"usleep", "Usleep Only"}, {"all_timers", "All Timers"}, {NULL, NULL} },
-        "auto"
-    },
-    {
-        "rpcs3_emulate_hdd_speed", "Timing: Emulate HDD Read Speed", "Emulate HDD Read Speed",
-        "Reads from the emulated hard disk at the speed of the PS3's, for games that break when loading is instant.",
-        NULL, "timing",
-        { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
-        "disabled"
-    },
-    {
-        "rpcs3_emulate_bdvd_speed", "Timing: Emulate BD-ROM Read Speed", "Emulate BD-ROM Read Speed",
-        "Reads from the disc at the PS3 drive's 2x speed (9 MB/s), for games that stream movies from disc and show corrupted video when loading is instant. Loading takes longer.",
-        NULL, "timing",
-        { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
-        "disabled"
-    },
     // ==================== AUDIO ====================
     {
         "rpcs3_master_volume", "Audio: Master Volume", "Master Volume",
@@ -761,16 +651,145 @@ struct retro_core_option_v2_definition option_defs_us[] = {
         { {"enabled", NULL}, {"disabled", NULL}, {NULL, NULL} },
         "enabled"
     },
+    // Root-level control between the normal and advanced-only sections.
+    {
+        "rpcs3_show_advanced_sections", "Show Advanced Sections", NULL,
+        "Show Scheduling (Advanced), Timing (Advanced) and Diagnostics (Advanced). These sections contain no internal visibility selector. CPU and GPU keep their own independent Show Advanced Options controls. Hiding sections preserves every saved value and effect.",
+        NULL, NULL,
+        { {"disabled", "Disabled"}, {"enabled", "Enabled"}, {NULL, NULL} },
+        "disabled"
+    },
+    // ==================== SCHEDULING ====================
+    {
+        "rpcs3_thread_scheduler", "Scheduling (Advanced): Thread Scheduler", "Thread Scheduler",
+        "Who places the emulator's threads on the CPU's cores, as in RPCS3. Operating System leaves it to the system; the RPCS3 schedulers pin PPU, SPU and RSX threads to cores of their own, laid out for a few desktop CPUs. Has no effect on Android, where the core cannot pin threads.",
+        NULL, "scheduling",
+        { {"os", "Operating System"}, {"old", "RPCS3 Scheduler"}, {"alt", "RPCS3 Alternative Scheduler"}, {NULL, NULL} },
+        "os"
+    },
+    {
+        "rpcs3_preferred_spu_threads", "Scheduling (Advanced): Preferred SPU Threads", "Preferred SPU Threads",
+        "Number of SPU threads. Auto recommended.",
+        NULL, "scheduling",
+        { {"0", "Auto"}, {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"}, {"6", "6"}, {NULL, NULL} },
+        "0"
+    },
+    {
+        "rpcs3_llvm_threads", "Scheduling (Advanced): PPU/SPU LLVM Compiler Threads", "PPU/SPU LLVM Compiler Threads",
+        "How many threads compile PPU and SPU code with LLVM, as RPCS3's Max LLVM Compile Threads. Auto uses every core; fewer keeps a phone cooler and uses less memory while a game is compiled, and makes it take longer. On ARM CPUs with efficiency cores (most phones, some ARM laptops) the default leaves those out.",
+        NULL, "scheduling",
+        { {"0", "Auto"}, {"1", NULL}, {"2", NULL}, {"3", NULL}, {"4", NULL}, {"6", NULL}, {"8", NULL}, {NULL, NULL} },
+        "0"
+    },
+    {
+        "rpcs3_shader_compiler_threads", "Scheduling (Advanced): Shader Compiler Threads", "Shader Compiler Threads",
+        "How many threads compile shaders. Auto lets RPCS3 decide from the CPU it sees. On ARM CPUs with efficiency cores (most phones, some ARM laptops) the default leaves those out.",
+        NULL, "scheduling",
+        { {"auto", "Auto"}, {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"6", "6"}, {"8", "8"}, {NULL, NULL} },
+        "auto"
+    },
+    {
+        "rpcs3_ppu_threads", "Scheduling (Advanced): PPU Thread Count", "PPU Thread Count",
+        "How many PPU threads run at once, as in RPCS3. 2 is the default and what nearly every game wants.",
+        NULL, "scheduling",
+        { {"1", NULL}, {"2", "2 (Default)"}, {"3", NULL}, {"4", NULL}, {"5", NULL}, {"6", NULL}, {"7", NULL}, {"8", NULL}, {NULL, NULL} },
+        "2"
+    },
+    {
+        "rpcs3_max_spurs_threads", "Scheduling (Advanced): Maximum Number of SPURS Threads", "Maximum Number of SPURS Threads",
+        "Maximum SPURS thread count. Lower may improve performance.",
+        NULL, "scheduling",
+        { {"auto", "Auto"}, {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"}, {"6", "6"}, {NULL, NULL} },
+        "auto"
+    },
+    {
+        "rpcs3_max_preempt_count", "Scheduling (Advanced): Max Power Saving CPU-Preemptions", "Max Power Saving CPU-Preemptions",
+        "How many times a frame RPCS3 may pause the CPU threads to save power, as in RPCS3. 0 turns it off.",
+        NULL, "scheduling",
+        { {"0", "0 (Disabled)"}, {"10", NULL}, {"20", NULL}, {"50", NULL}, {"100", NULL}, {"200", NULL}, {"400", NULL}, {NULL, NULL} },
+        "0"
+    },
+    {
+        "rpcs3_spu_delay_penalty", "Scheduling (Advanced): SPU Delay Penalty", "SPU Delay Penalty",
+        "SPU delay penalty for scheduling.",
+        NULL, "scheduling",
+        { {"0", "0"}, {"1", "1"}, {"2", "2"}, {"3", "3 (Default)"}, {"4", "4"}, {"5", "5"}, {NULL, NULL} },
+        "3"
+    },
+    {
+        "rpcs3_spu_events_busy_loop", "Scheduling (Advanced): Enable SPU Events Busy Loop", "Enable SPU Events Busy Loop",
+        "Lets SPU threads spin while they wait for events instead of sleeping. Can help a few games, costs CPU time.",
+        NULL, "scheduling",
+        { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
+        "disabled"
+    },
+    // ==================== TIMING ====================
+    {
+        "rpcs3_frame_pacing", "Timing (Advanced): Frame Pacing", "Frame Pacing",
+        "What the game's frames are timed by. Emulator clock is RPCS3's own timer, as in standalone RPCS3. RetroArch gives the game one PS3 refresh per frame RetroArch shows, so fast-forward speeds the game up and the game runs at the VBlank Frequency when RetroArch shows that many frames a second.",
+        NULL, "timing",
+        { {"frontend", "RetroArch"}, {"emulator", "Emulator clock"}, {NULL, NULL} },
+        "emulator"
+    },
+    {
+        "rpcs3_frame_limit", "Timing (Advanced): Frame Limit", "Frame Limit",
+        "Highest frame rate the game may run at. Auto is the VBlank Frequency, as in RPCS3; PS3 Native paces flips the way the PS3 does; Off lets games that do not wait for the PS3's refresh themselves run too fast.",
+        NULL, "timing",
+        { {"auto", "Auto"}, {"ps3", "PS3 Native"}, {"off", "Off"}, {"30", "30 FPS"}, {"50", "50 FPS"}, {"60", "60 FPS"}, {"120", "120 FPS"}, {"144", "144 FPS"}, {"240", "240 FPS"}, {NULL, NULL} },
+        "auto"
+    },
+    {
+        "rpcs3_vblank_rate", "Timing (Advanced): VBlank Frequency", "VBlank Frequency",
+        "The PS3's refresh rate in Hz. It is also the frame rate the core asks RetroArch for, which takes effect when content is loaded; games that can run above 60 FPS need a display that refreshes that fast. \"From List\" doubles Vblank rate for supported games listed in vblank_unlock.txt found in system/rpcs3. You may need to apply per-game patches.",
+        NULL, "timing",
+        { {"50", "50 Hz (PAL)"}, {"60", "60 Hz (NTSC)"}, {"120", "120 Hz"}, {"144", "144 Hz"}, {"240", "240 Hz"}, {"list", "From List"}, {NULL, NULL} },
+        "60"
+    },
+    {
+        "rpcs3_vblank_ntsc", "Timing (Advanced): VBlank NTSC Fixup", "VBlank NTSC Fixup",
+        "Run the VBlank Frequency at the NTSC rate (59.94 Hz for 60) instead of the round number. On by default, as in RPCS3.",
+        NULL, "timing",
+        { {"enabled", NULL}, {"disabled", NULL}, {NULL, NULL} },
+        "enabled"
+    },
+    {
+        "rpcs3_clocks_scale", "Timing (Advanced): Clocks Scale", "Clocks Scale",
+        "Scale PS3 clock speed percentage.",
+        NULL, "timing",
+        { {"50", "50%"}, {"75", "75%"}, {"100", "100%"}, {"150", "150%"}, {"200", "200%"}, {"300", "300%"}, {NULL, NULL} },
+        "100"
+    },
+    {
+        "rpcs3_sleep_timers_accuracy", "Timing (Advanced): Sleep Timers Accuracy", "Sleep Timers Accuracy",
+        "Sleep timers accuracy level.",
+        NULL, "timing",
+        { {"auto", "Automatic"}, {"as_host", "As Host"}, {"usleep", "Usleep Only"}, {"all_timers", "All Timers"}, {NULL, NULL} },
+        "auto"
+    },
+    {
+        "rpcs3_emulate_hdd_speed", "Timing (Advanced): Emulate HDD Read Speed", "Emulate HDD Read Speed",
+        "Reads from the emulated hard disk at the speed of the PS3's, for games that break when loading is instant.",
+        NULL, "timing",
+        { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
+        "disabled"
+    },
+    {
+        "rpcs3_emulate_bdvd_speed", "Timing (Advanced): Emulate BD-ROM Read Speed", "Emulate BD-ROM Read Speed",
+        "Reads from the disc at the PS3 drive's 2x speed (9 MB/s), for games that stream movies from disc and show corrupted video when loading is instant. Loading takes longer.",
+        NULL, "timing",
+        { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
+        "disabled"
+    },
     // ==================== DIAGNOSTICS ====================
     {
-        "rpcs3_timing_log", "Diagnostics: Performance Timing Log", "Performance Timing Log",
+        "rpcs3_timing_log", "Diagnostics (Advanced): Performance Timing Log", "Performance Timing Log",
         "Writes one diagnostic summary per second to RetroArch and rpcs3_detailed.log: frontend cadence, shown/duplicate frames and audio/video callback times; Vulkan hardware completed/dropped frames, queue contention, image acquisition and fence waits. CPU wall times, not GPU execution time or physical presentation. Disabled by default to avoid measurement overhead.",
         NULL, "diagnostics",
         { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
         "disabled"
     },
     {
-        "rpcs3_silence_all_logs", "Diagnostics: Silence All Logs", "Silence All Logs",
+        "rpcs3_silence_all_logs", "Diagnostics (Advanced): Silence All Logs", "Silence All Logs",
         "Silence all log output for performance.",
         NULL, "diagnostics",
         { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
@@ -778,6 +797,8 @@ struct retro_core_option_v2_definition option_defs_us[] = {
     },
     { NULL, NULL, NULL, NULL, NULL, NULL, {{NULL, NULL}}, NULL }
 };
+
+#undef RPCS3_ADVANCED_SELECTOR
 
 struct retro_core_options_v2 options_us = {
    option_cats_us,
@@ -858,6 +879,8 @@ static inline void libretro_set_core_options(retro_environment_t environ_cb,
 
    *categories_supported = false;
 
+   libretro_option_labels::mark_defaults(options_us.definitions);
+
 #ifndef HAVE_NO_LANGEXTRA
    /* Generated translations predate categorized short labels. Preserve their
     * existing translated names while the English schema supplies the groups.
@@ -866,8 +889,13 @@ static inline void libretro_set_core_options(retro_environment_t environ_cb,
       if (options_intl[lang] && options_intl[lang] != &options_us)
          for (struct retro_core_option_v2_definition *def = options_intl[lang]->definitions;
               def && def->key; ++def)
+         {
             if (!def->desc_categorized)
                def->desc_categorized = def->desc;
+         }
+   for (unsigned lang = 0; lang < RETRO_LANGUAGE_LAST; ++lang)
+      if (options_intl[lang] && options_intl[lang] != &options_us)
+         libretro_option_labels::mark_defaults(options_intl[lang]->definitions, options_us.definitions);
 #endif
 
    if (!environ_cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &version))
@@ -897,6 +925,9 @@ static inline void libretro_set_core_options(retro_environment_t environ_cb,
       size_t i, j;
       size_t option_index              = 0;
       size_t num_options               = 0;
+      /* Use the published list, which may include per-title patches/status. */
+      struct retro_core_option_v2_definition
+            *published_defs_us          = options_us.definitions;
       struct retro_core_option_definition
             *option_v1_defs_us         = NULL;
 #ifndef HAVE_NO_LANGEXTRA
@@ -914,7 +945,7 @@ static inline void libretro_set_core_options(retro_environment_t environ_cb,
       /* Determine total number of options */
       while (true)
       {
-         if (option_defs_us[num_options].key)
+         if (published_defs_us[num_options].key)
             num_options++;
          else
             break;
@@ -926,10 +957,10 @@ static inline void libretro_set_core_options(retro_environment_t environ_cb,
          option_v1_defs_us = (struct retro_core_option_definition *)
                calloc(num_options + 1, sizeof(struct retro_core_option_definition));
 
-         /* Copy parameters from option_defs_us array */
+         /* Copy parameters from published_defs_us array */
          for (i = 0; i < num_options; i++)
          {
-            struct retro_core_option_v2_definition *option_def_us = &option_defs_us[i];
+            struct retro_core_option_v2_definition *option_def_us = &published_defs_us[i];
             struct retro_core_option_value *option_values         = option_def_us->values;
             struct retro_core_option_definition *option_v1_def_us = &option_v1_defs_us[i];
             struct retro_core_option_value *option_v1_values      = option_v1_def_us->values;
@@ -1014,13 +1045,13 @@ static inline void libretro_set_core_options(retro_environment_t environ_cb,
          if (!variables || !values_buf)
             goto error;
 
-         /* Copy parameters from option_defs_us array */
+         /* Copy parameters from published_defs_us array */
          for (i = 0; i < num_options; i++)
          {
-            const char *key                        = option_defs_us[i].key;
-            const char *desc                       = option_defs_us[i].desc;
-            const char *default_value              = option_defs_us[i].default_value;
-            struct retro_core_option_value *values = option_defs_us[i].values;
+            const char *key                        = published_defs_us[i].key;
+            const char *desc                       = published_defs_us[i].desc;
+            const char *default_value              = published_defs_us[i].default_value;
+            struct retro_core_option_value *values = published_defs_us[i].values;
             size_t buf_len                         = 3;
             size_t default_index                   = 0;
 
@@ -1050,6 +1081,7 @@ static inline void libretro_set_core_options(retro_environment_t environ_cb,
                /* Build values string */
                if (num_values > 0)
                {
+                  desc = libretro_option_labels::legacy_description(published_defs_us[i], default_index);
                   buf_len += num_values - 1;
                   buf_len += strlen(desc);
 

@@ -4,6 +4,18 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+## v0.1.0.3 — 2026-10-28
+
+- Every adjustable Core Option now identifies its default value with a `(Default)` label, including advanced controls and per-title patches. Markers follow the published platform/title defaults and retain translated value labels. Saved values, defaults and selection order are unchanged; legacy API 0 frontends show the default in the option description instead. The informational Patch Status row is unchanged.
+
+- Installed PSN playlist labels now use the opened PKG filename without its final extension, preserving filename tags and case. The regular add/update operation refreshes the matching label on each recognized PKG opening; launch paths remain installed PARAM.SFO files. Other entries/settings and unmarked same-name user playlists remain protected. No separate correction or one-time conversion is performed.
+
+- Core Options now use independent Show Advanced Options selectors immediately before their target controls inside CPU and GPU. A root Show Advanced Sections control follows the normal sections and shows/hides Scheduling (Advanced), Timing (Advanced) and Diagnostics (Advanced) at the end; these sections have no internal selector. All visibility controls default to Disabled and preserve saved emulation values/effects and the existing advanced classification. Patch Manager is always present, with an informational “Load a title to check for patches” or “No patches available for this title” row when appropriate. Its status and real per-title patches are also published to older API 1/0 frontends.
+
+- New System option Installed PSN Playlist (enabled by default): successful base PS3 PSN game installations and reopening recognized installed-game PKGs add or update their installed PARAM.SFO entry in Sony - PlayStation 3 (PSN Installed), using the frontend's playlist directory and loaded core. The list carries an ownership marker; a same-name user playlist is preserved and reported on screen. Reinstalling a listed title does not duplicate it; the matching label follows the PKG filename while other metadata/settings are retained. Reopening a recognized PKG can recreate a deleted list without reinstalling. Updates/DLC, failed installations and direct game launches do not add entries. Playlist failures leave the installation successful. Direct launch uses central or HDD RAP licenses and is independent of PKG Launcher.
+
+- Documented the integration policy: follow the original Libretro port's API, structure and format changes, adapt this fork's improvements on top, and retain deviations only for concrete, documented needs. Engine updates remain subject to the separate RPCS3 merge rules.
+
 - Updated the emulation engine to RPCS3 v0.0.43-20410. This includes P2P receive-buffer/deadlock fixes, the cellRec PPU memory-allocation fix and IRD file-size validation. The core follows upstream's controller configuration structures; standalone GUI components remain excluded. Refreshed the bundled settings database from the official service; its timestamp and contents are unchanged.
 
 - Merged the original Libretro port through `f62caced`: failed boots stop their started threads and release disc images, unsupported own-device Vulkan configurations are rejected before boot, and firmware names are recognized regardless of letter case. POSIX fault handlers are restored when the core unloads and unhandled faults are passed back to the frontend/system handler. Logging uses local buffers, including the file logger, so its buffers do not keep the core loaded or outlive their thread-local storage during shutdown.

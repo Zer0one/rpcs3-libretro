@@ -4,14 +4,14 @@ The `Build And Publish Release` workflow builds the targets recorded in the sour
 
 ## Publish A New Version
 
-1. Complete validation on the feature branch and squash the related changes into `libretro` as required by `AGENTS.md`. Keep `main` aligned without rewriting either branch's published history.
+1. Complete review and validation on `main`, following the maintainer's workflow for this independent fork. Create another branch only when explicitly requested. Do not rewrite published history or modify the developer-owned `AGENTS.md`/`CLAUDE.md` files.
 2. Record user-facing changes in `CHANGELOG.md` under `## vMAJOR.MINOR.PATCH.BUILD`. The first independent release is `v0.1.0.1`; increment the final component for the next ordinary release.
-3. Push the reviewed commit to `origin/main` and `origin/libretro`.
+3. Push the reviewed commit to `origin/main`.
 4. Create an annotated version tag on that commit and push the tag. Tag pushes start the remote release workflow automatically.
 
 ```sh
-git tag -a v0.1.0.2 -m 'RPCS3 Libretro v0.1.0.2' <reviewed-main-commit>
-git push origin refs/tags/v0.1.0.2
+git tag -a v0.1.0.3 -m 'RPCS3 Libretro v0.1.0.3' <reviewed-main-commit>
+git push origin refs/tags/v0.1.0.3
 ```
 
 The upstream RPCS3 version in `rpcs3/libretro/upstream.version` changes only with a full upstream merge. It remains the core's engine version; the fork commit in the startup log identifies the numbered release. A fork release tag does not replace the engine build number.
@@ -26,7 +26,7 @@ gh workflow run release.yml --repo Zer0one/rpcs3-libretro --ref main -f release_
 
 The source tag must already exist and name a commit contained in `origin/main`. It is never moved or rewritten. Current CI tools are checked out separately from the tagged emulator source, so a packaging/build-procedure repair can rebuild an existing release without silently substituting newer emulation code. `BUILD_INFO.json` records both the source commit and the workflow commit/run.
 
-If only one platform group fails, select that group in `platforms` and provide the completed release run in `reuse_run_id`. For example, rebuild Windows while retaining the six successful packages:
+If only one platform group fails, select that group in `platforms` and provide the completed release run in `reuse_run_id`. For example, rebuild Windows for the legacy seven-target v0.1.0.1 release while retaining its six successful packages:
 
 ```sh
 gh workflow run release.yml --repo Zer0one/rpcs3-libretro --ref main \
