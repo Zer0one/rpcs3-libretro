@@ -4,6 +4,8 @@ What changed in the libretro core of this fork, newest first. Changes that come 
 
 ## Unreleased
 
+- Update the emulation engine to RPCS3 v0.0.43-20415 with ARM64 atomic-operation updates, VulkanMemoryAllocator 3.5.0, network signaling fixes and the current per-game configuration database.
+
 - Release CI can recover one macOS architecture while reusing the other verified packages. ARM64 builds use the macOS 26 hosted pool with Sequoia dependency bottles selected directly from Homebrew's public metadata and verified before installation; linked-library deployment targets are checked to retain the macOS 15 minimum despite the newer build host. Source release tags remain immutable.
 
 ## v0.1.0.3 — 2026-10-28

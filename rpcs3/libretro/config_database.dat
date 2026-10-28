@@ -1,6 +1,6 @@
 {
     "return_code": 0,
-    "timestamp": 1792728529,
+    "timestamp": 1793215229,
     "games": {
         "BCAS20014": {
             "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle"
@@ -1515,7 +1515,7 @@
             "config": "Audio:\n  Audio Format: Automatic\nCore:\n  Libraries Control:\n    - libvdec.sprx:lle"
         },
         "BLES01378": {
-            "config": "Video:\n  Allow Host GPU Labels: true\n  Strict Rendering Mode: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
+            "config": "Video:\n  Allow Host GPU Labels: true\n  Shader Precision: Ultra\n  Write Color Buffers: true"
         },
         "BLES01379": {
             "config": "Video:\n  Disable Vertex Cache: true"
@@ -1542,7 +1542,7 @@
             "config": "Core:\n  Disable SPU GETLLAR Spin Optimization: true\nVideo:\n  Read Color Buffers: true"
         },
         "BLES01426": {
-            "config": "Video:\n  Allow Host GPU Labels: true\n  Strict Rendering Mode: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
+            "config": "Video:\n  Allow Host GPU Labels: true\n  Shader Precision: Ultra\n  Write Color Buffers: true"
         },
         "BLES01437": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -2784,7 +2784,7 @@
             "config": "Core:\n  SPU Decoder: Interpreter (dynamic)"
         },
         "BLUS30485": {
-            "config": "Video:\n  Allow Host GPU Labels: true\n  Strict Rendering Mode: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
+            "config": "Video:\n  Allow Host GPU Labels: true\n  Shader Precision: Ultra\n  Write Color Buffers: true"
         },
         "BLUS30489": {
             "config": "Video:\n  Write Color Buffers: true\n  Write Depth Buffer: true"
@@ -4701,7 +4701,7 @@
             "config": "Audio:\n  Audio Format: Automatic\nCore:\n  Libraries Control:\n    - libvdec.sprx:lle"
         },
         "NPEB90391": {
-            "config": "Video:\n  Allow Host GPU Labels: true\n  Strict Rendering Mode: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
+            "config": "Video:\n  Allow Host GPU Labels: true\n  Shader Precision: Ultra\n  Write Color Buffers: true"
         },
         "NPEB90392": {
             "config": "Video:\n  Write Color Buffers: true"
@@ -6762,7 +6762,7 @@
             "config": "Core:\n  Libraries Control:\n    - libvdec.sprx:lle\n  RSX FIFO Fetch Accuracy: Ordered & Atomic\n  Sleep Timers Accuracy: As Host\nVideo:\n  Frame limit: Infinite\n  Handle RSX Memory Tiling: true\n  Multithreaded RSX: true\n  Read Color Buffers: true\n  Write Color Buffers: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
         },
         "NPUB90651": {
-            "config": "Video:\n  Allow Host GPU Labels: true\n  Strict Rendering Mode: true\n  Accurate ZCULL stats: false\n  Relaxed ZCULL Sync: true"
+            "config": "Video:\n  Allow Host GPU Labels: true\n  Shader Precision: Ultra\n  Write Color Buffers: true"
         },
         "NPUB90655": {
             "config": "Core:\n  SPU XFloat Accuracy: Relaxed"
