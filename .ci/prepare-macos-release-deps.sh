@@ -17,13 +17,23 @@ export HOMEBREW_NO_AUTO_UPDATE=1
 
 brew install ninja vulkan-headers >/dev/null
 formulas=(zstd molten-vk llvm@22)
-brew fetch --bottle-tag=arm64_sequoia "${formulas[@]}"
+if ! python3 "$(dirname "$0")/fetch-macos-release-bottles.py" \
+    --output macos-sequoia-bottles --tag arm64_sequoia "${formulas[@]}"; then
+    echo 'Compatible bottles could not be verified; installed libraries are untouched' >&2
+    exit 1
+fi
 bottles=()
-for formula in "${formulas[@]}"; do
-    bottle=$(brew --cache --bottle-tag=arm64_sequoia "$formula")
-    [[ -f "$bottle" && "$bottle" == *.bottle*.tar.gz ]]
+while IFS= read -r bottle; do
+    if [[ ! -s "$bottle" || "$bottle" != *.bottle*.tar.gz ]]; then
+        echo "Missing verified bottle: $bottle" >&2
+        exit 1
+    fi
     bottles+=("$bottle")
-done
+done < macos-sequoia-bottles/paths.txt
+if [[ "${#bottles[@]}" != "${#formulas[@]}" ]]; then
+    echo 'Incomplete verified bottle set' >&2
+    exit 1
+fi
 for formula in llvm@22 molten-vk zstd; do
     if brew list --versions "$formula" >/dev/null 2>&1; then
         brew uninstall --ignore-dependencies "$formula"
