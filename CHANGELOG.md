@@ -2,6 +2,10 @@
 
 What changed in the libretro core of this fork, newest first. Changes that come with a merge of upstream RPCS3 are in upstream's own history; a merge is noted here with the upstream build it brought in.
 
+## Unreleased
+
+- Release CI enables Homebrew's local-bottle loading mode only while installing the checksum-verified official Sequoia bottles on the ephemeral ARM64 runner. This restores dependency installation with current Homebrew and allows recovery of the immutable v0.1.0.4 source tag.
+
 ## v0.1.0.4 — 2026-10-29
 
 - Vulkan frame handoff now yields to RPCS3's own pause handling once emulation is paused, allowing frame retirement to complete before resume. MotorStorm vehicle selection passed a long paused-menu test with rendering and input restored, where the previous build hit Dead FIFO after resume. This does not qualify Async MoltenVK or Frame Advance precision.

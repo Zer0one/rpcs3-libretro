@@ -99,6 +99,32 @@ class DeploymentTargets(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(calls.read_text().splitlines(), ['install ninja vulkan-headers'])
 
+    def test_local_bottle_mode_is_scoped_to_verified_install(self):
+        with tempfile.TemporaryDirectory(prefix='rpcs3-bottle-mode-') as temporary:
+            root = Path(temporary)
+            calls = root / 'brew-calls'
+            for name, content in {
+                'uname': '#!/bin/sh\necho arm64\n',
+                'brew': '#!/bin/sh\nprintf "developer=%s %s\\n" "${HOMEBREW_DEVELOPER:-}" "$*" >> "$TASK_BREW_CALLS"\nif [ "$1" = --prefix ]; then echo /fixture; fi\n',
+                'python3': '#!/bin/sh\ncase "$1" in *fetch-macos-release-bottles.py) mkdir -p macos-sequoia-bottles; for name in zstd molten-vk llvm; do printf fixture > "macos-sequoia-bottles/$name.bottle.tar.gz"; done; for name in zstd molten-vk llvm; do printf "%s/macos-sequoia-bottles/%s.bottle.tar.gz\\n" "$PWD" "$name"; done > macos-sequoia-bottles/paths.txt;; esac\n',
+            }.items():
+                path = root / name
+                path.write_text(content)
+                path.chmod(0o755)
+            env = {key: value for key, value in os.environ.items()
+                   if key != 'HOMEBREW_DEVELOPER'}
+            env.update(GITHUB_ACTIONS='true', RUNNER_ENVIRONMENT='github-hosted',
+                       PATH=str(root) + os.pathsep + os.environ['PATH'], TASK_BREW_CALLS=str(calls),
+                       GITHUB_ENV=str(root / 'github-env'))
+            result = subprocess.run(['/bin/bash', str(ROOT / '.ci/prepare-macos-release-deps.sh')],
+                                    env=env, cwd=root, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            records = calls.read_text().splitlines()
+            installs = [line for line in records if '.bottle.tar.gz' in line]
+            self.assertEqual(len(installs), 3)
+            self.assertTrue(all(line.startswith('developer=1 install ') for line in installs))
+            self.assertTrue(all(line.startswith('developer= ') for line in records if line not in installs))
+
     @unittest.skipUnless(sys.platform == 'darwin', 'Native Mach-O fixture')
     def test_archive_checks_every_member(self):
         with tempfile.TemporaryDirectory(prefix='rpcs3-macos-target-') as temporary:

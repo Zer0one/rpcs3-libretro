@@ -41,7 +41,9 @@ for formula in llvm@22 molten-vk zstd; do
 done
 # Explicit local bottles prevent Homebrew choosing newer-host bottles instead.
 for bottle in "${bottles[@]}"; do
-    brew install --ignore-dependencies --force-bottle "$bottle"
+    # Current Homebrew accepts local bottles only in developer/test mode.
+    # Scope this to the already checksum-verified official bottle install.
+    HOMEBREW_DEVELOPER=1 brew install --ignore-dependencies --force-bottle "$bottle"
 done
 
 llvm_prefix=$(brew --prefix llvm@22)
