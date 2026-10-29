@@ -358,14 +358,14 @@ struct retro_core_option_v2_definition option_defs_us[] = {
     },
     {
         "rpcs3_msaa", "GPU: Anti-Aliasing", "Anti-Aliasing",
-        "Multi-sample anti-aliasing where the game asks for it, as in RPCS3.",
+        "Multi-sample anti-aliasing where the game asks for it, as in RPCS3. Limited by enabled GPU features. Restart RetroArch after changing this option.",
         NULL, "gpu",
         { {"auto", "Auto"}, {"disabled", NULL}, {NULL, NULL} },
         "auto"
     },
     {
         "rpcs3_shader_mode", "GPU: Shader Mode", "Shader Mode",
-        "How shaders are compiled. Async compiles in the background but the frame that first needs a pipeline waits for it, which is what a long freeze on a new scene usually is. Async with Shader Interpreter draws that frame through the interpreter instead and swaps in the compiled shader when it is ready: no freeze, lower speed while it catches up.",
+        "How shaders are compiled. Async compiles in the background but the frame that first needs a pipeline waits for it, which is what a long freeze on a new scene usually is. Async with Shader Interpreter draws that frame through the interpreter instead and swaps in the compiled shader when it is ready: no freeze, lower speed while it catches up. Restart RetroArch after changing this option.",
         NULL, "gpu",
         { {"async", "Async (Recommended)"}, {"async_interpreter", "Async with Shader Interpreter (no stalls)"}, {"async_recompiler", "Async with Recompiler"}, {"interpreter", "Shader Interpreter only"}, {"sync", "Synchronous"}, {NULL, NULL} },
         "async"
@@ -384,7 +384,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
 #endif
     {
         "rpcs3_zcull_accuracy", "GPU: ZCULL Accuracy", "ZCULL Accuracy",
-        "How exactly occlusion queries are answered, as in RPCS3. Precise is correct and the default there; Approximate and Relaxed are faster, and can break effects such as lens flares. Relaxed is worth trying on phones.",
+        "How exactly occlusion queries are answered, as in RPCS3. Precise is correct and the default there; Approximate and Relaxed are faster, and can break effects such as lens flares. Relaxed is worth trying on phones. Precise falls back to Approximate if unavailable on the GPU. Restart RetroArch after changing this option.",
         NULL, "gpu",
         { {"precise", "Precise (Default)"}, {"approximate", "Approximate"}, {"relaxed", "Relaxed (Fastest)"}, {NULL, NULL} },
         "precise"
@@ -447,14 +447,14 @@ struct retro_core_option_v2_definition option_defs_us[] = {
     },
     {
         "rpcs3_async_texture_streaming", "GPU: Asynchronous Texture Streaming", "Asynchronous Texture Streaming",
-        "Enable asynchronous texture streaming.",
+        "Enable asynchronous texture streaming when separate GPU queues are available. Restart RetroArch after changing this option.",
         NULL, "gpu",
         { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
         "disabled"
     },
     {
         "rpcs3_host_gpu_labels", "GPU: Allow Host GPU Labels", "Allow Host GPU Labels",
-        "Lets the host GPU signal RSX labels itself instead of the CPU waiting on them. Faster in some games, unstable in others.",
+        "Lets the host GPU signal RSX labels itself instead of the CPU waiting on them. Faster in some games, unstable in others. Restart RetroArch after changing this option.",
         NULL, "gpu",
         { {"disabled", NULL}, {"enabled", NULL}, {NULL, NULL} },
         "disabled"

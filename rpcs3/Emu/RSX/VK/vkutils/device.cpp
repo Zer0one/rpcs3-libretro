@@ -905,6 +905,8 @@ namespace vk
 			vk::die_with_error(error);
 		}
 
+		m_enabled_features = enabled_features;
+
 		// Dump some diagnostics to the log
 		rsx_log.notice("%u extensions loaded:", ::size32(requested_extensions));
 		for (const auto& ext : requested_extensions)
@@ -936,6 +938,20 @@ namespace vk
 		// Useful for debugging different VRAM configurations
 		const u64 vram_allocation_limit = g_cfg.video.vk.vram_allocation_limit * 0x100000ull;
 		memory_map.device_local_total_bytes = std::min(memory_map.device_local_total_bytes, vram_allocation_limit);
+	}
+
+	void render_device::apply_config_limits() const
+	{
+		if ((!m_enabled_features.shaderStorageImageMultisample || !m_enabled_features.shaderStorageImageWriteWithoutFormat) && g_cfg.video.antialiasing_level != msaa_level::none)
+		{
+			rsx_log.warning("MSAA disabled: the existing Vulkan device has no enabled multisampled storage image support.");
+			g_cfg.video.antialiasing_level.set(msaa_level::none);
+		}
+		if (!m_enabled_features.occlusionQueryPrecise && g_cfg.video.precise_zpass_count)
+		{
+			rsx_log.warning("Precise ZCULL disabled: precise occlusion queries are not enabled on the Vulkan device.");
+			g_cfg.video.precise_zpass_count.set(false);
+		}
 	}
 
 	void render_device::destroy()

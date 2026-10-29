@@ -136,7 +136,7 @@ void GLGSRender::on_init_thread()
 	m_context = m_frame->make_context();
 	LRGL_GLGS_NOTICE("on_init_thread make_context returned ctx=%p", m_context);
 
-	const auto shadermode = g_cfg.video.shadermode.get();
+	auto shadermode = g_cfg.video.shadermode.get();
 	if (shadermode != shader_mode::recompiler)
 	{
 		auto context_create_func = [m_frame = m_frame]()
@@ -244,6 +244,8 @@ void GLGSRender::on_init_thread()
 		case shader_mode::interpreter_only:
 			rsx_log.error("Bindless texture extension required for shader interpreter is not supported on your GPU. Will use async recompiler as a fallback.");
 			g_cfg.video.shadermode.set(shader_mode::async_recompiler);
+			// Resource creation below must use the fallback too.
+			shadermode = shader_mode::async_recompiler;
 			break;
 		default:
 			break;

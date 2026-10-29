@@ -145,6 +145,7 @@ namespace vk
 		gpu_formats_support m_formats_support{};
 		std::unique_ptr<mem_allocator_base> m_allocator;
 		VkDevice dev = VK_NULL_HANDLE;
+		VkPhysicalDeviceFeatures m_enabled_features{};
 
 		VkQueue m_graphics_queue = VK_NULL_HANDLE;
 		VkQueue m_present_queue = VK_NULL_HANDLE;
@@ -164,6 +165,8 @@ namespace vk
 
 		void create(vk::physical_device& pdev, u32 graphics_queue_idx, u32 present_queue_idx, u32 transfer_queue_idx);
 		void destroy();
+		// Reapply the negotiated device limit after a frontend reloads game settings.
+		void apply_config_limits() const;
 
 		const VkFormatProperties get_format_properties(VkFormat format) const;
 
@@ -178,10 +181,11 @@ namespace vk
 		const multidraw_features get_multidraw_support() const { return pgpu->multidraw_support; }
 
 		bool get_shader_stencil_export_support() const { return pgpu->optional_features_support.shader_stencil_export; }
-		bool get_depth_bounds_support() const { return pgpu->features.depthBounds != VK_FALSE; }
-		bool get_alpha_to_one_support() const { return pgpu->features.alphaToOne != VK_FALSE; }
-		bool get_anisotropic_filtering_support() const { return pgpu->features.samplerAnisotropy != VK_FALSE; }
-		bool get_wide_lines_support() const { return pgpu->features.wideLines != VK_FALSE; }
+		bool get_depth_bounds_support() const { return m_enabled_features.depthBounds != VK_FALSE; }
+		bool get_sample_rate_shading_support() const { return m_enabled_features.sampleRateShading != VK_FALSE; }
+		bool get_alpha_to_one_support() const { return m_enabled_features.alphaToOne != VK_FALSE; }
+		bool get_anisotropic_filtering_support() const { return m_enabled_features.samplerAnisotropy != VK_FALSE; }
+		bool get_wide_lines_support() const { return m_enabled_features.wideLines != VK_FALSE; }
 		bool get_conditional_render_support() const { return pgpu->optional_features_support.conditional_rendering; }
 		bool get_unrestricted_depth_range_support() const { return pgpu->optional_features_support.unrestricted_depth_range; }
 		bool get_external_memory_host_support() const { return pgpu->optional_features_support.external_memory_host; }

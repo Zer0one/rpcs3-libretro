@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "VKLibretro.h"
 #include "VKHelpers.h"
+#include "Emu/System.h"
 #include "libretro/libretro_metrics.h"
 #include "vkutils/instance.h"
 #include "vkutils/swapchain.h"
@@ -274,14 +275,18 @@ namespace vk::libretro
 		// the next one. It used to run on until a watchdog paused it 100 ms
 		// later; the frames in between were dropped and Frame Advance let
 		// that many through a step (NNshi: 4-6 frames a step, a skip after
-		// every pause). A step lets exactly one frame through. In slices, so
-		// a stop of the content is noticed.
+		// every pause). A step lets exactly one frame through. Once RPCS3's
+		// watchdog has paused emulation, return to its normal RSX pause path:
+		// frame retirement and backend-local tasks must be able to finish,
+		// just as in standalone, while guest command execution stays paused.
 		std::unique_lock lock(s_frames_mutex);
 		if (frontend_stopped())
 		{
 			libretro_metrics::scope timing(libretro_metrics::counter::pause_wait);
-			while (frontend_stopped())
+			while (frontend_stopped() && !Emu.IsPaused())
 				s_frames_cv.wait_for(lock, std::chrono::milliseconds(5));
+			if (Emu.IsPaused())
+				rsx_log.notice("libretro: frame handoff yielded to RPCS3 pause handling");
 		}
 	}
 

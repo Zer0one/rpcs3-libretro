@@ -151,10 +151,10 @@ namespace vk
 				ms2.pSampleMask = &create_info.state.temp_storage.msaa_sample_mask;
 			}
 
-			if (g_cfg.video.antialiasing_level == msaa_level::none && ms2.sampleShadingEnable)
+			if (ms2.sampleShadingEnable && (g_cfg.video.antialiasing_level == msaa_level::none || !m_device->get_sample_rate_shading_support()))
 			{
-				// Do not compile with MSAA enabled if multisampling is disabled
-				rsx_log.warning("MSAA is disabled globally but a shader with multi-sampling enabled was submitted for compilation.");
+				// Sample shading also requires the feature to be enabled on this device.
+				rsx_log.warning("Sample shading requested by a pipeline but disabled by configuration or Vulkan device features.");
 				ms2.sampleShadingEnable = VK_FALSE;
 			}
 		}

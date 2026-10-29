@@ -2,9 +2,18 @@
 
 What changed in the libretro core of this fork, newest first. Changes that come with a merge of upstream RPCS3 are in upstream's own history; a merge is noted here with the upstream build it brought in.
 
-## Unreleased
+## v0.1.0.4 — 2026-10-29
+
+- Vulkan frame handoff now yields to RPCS3's own pause handling once emulation is paused, allowing frame retirement to complete before resume. MotorStorm vehicle selection passed a long paused-menu test with rendering and input restored, where the previous build hit Dead FIFO after resume. This does not qualify Async MoltenVK or Frame Advance precision.
 
 - Update the emulation engine to RPCS3 v0.0.43-20415 with ARM64 atomic-operation updates, VulkanMemoryAllocator 3.5.0, network signaling fixes and the current per-game configuration database.
+
+- Runtime Core Option updates now follow standalone RPCS3's dynamic-setting rules. Options and per-game database overrides are prepared separately, so restarting is required for settings tied to initialized CPU/GPU resources and hardware fallbacks cannot be accidentally undone by an unrelated option change. Saved frontend choices remain available for the next session.
+- Vulkan now bounds precise ZCULL and sample shading by features actually enabled on the logical device. OpenGL resource initialization now uses the selected shader fallback instead of retaining the unsupported interpreter mode in a cached local value. OpenGL runtime validation remains pending.
+
+- Clarified review of local adaptations when either the original Libretro port or standalone engine changes, including semantic overlap in clean merges. Existing technical documentation and Git history explain the differences and their validation limits.
+
+- Preserve the Vulkan device's MSAA capability limit when loading a game or refreshing Core Options. On drivers without multisampled storage image support, Auto no longer re-enables unsupported MSAA after device creation; this prevents the Metal shader compilation failure reproduced at MotorStorm's vehicle selection. A short MotorStorm race and Core Option refresh were validated on Apple Silicon with Ordered & Atomic FIFO and Async with Shader Interpreter; this is not a full-game stability claim.
 
 - Release CI can recover one macOS architecture while reusing the other verified packages. ARM64 builds use the macOS 26 hosted pool with Sequoia dependency bottles selected directly from Homebrew's public metadata and verified before installation; linked-library deployment targets are checked to retain the macOS 15 minimum despite the newer build host. Source release tags remain immutable.
 

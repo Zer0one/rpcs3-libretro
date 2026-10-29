@@ -752,7 +752,7 @@ static void libretro_limit_disk_cache()
         rpcs3::cache::limit_cache_size();
 }
 
-static void libretro_apply_core_options()
+static void libretro_apply_core_options(cfg_root& config = g_cfg)
 {
     if (!environ_cb)
         return;
@@ -778,56 +778,56 @@ static void libretro_apply_core_options()
     // PPU Decoder
     std::string ppu_decoder = get_option_value("rpcs3_ppu_decoder", "llvm");
     if (ppu_decoder == "llvm")
-        g_cfg.core.ppu_decoder.set(ppu_decoder_type::llvm);
+        config.core.ppu_decoder.set(ppu_decoder_type::llvm);
     else
-        g_cfg.core.ppu_decoder.set(ppu_decoder_type::_static);
+        config.core.ppu_decoder.set(ppu_decoder_type::_static);
 
     // SPU Decoder
     std::string spu_decoder = get_option_value("rpcs3_spu_decoder", "llvm");
     if (spu_decoder == "llvm")
-        g_cfg.core.spu_decoder.set(spu_decoder_type::llvm);
+        config.core.spu_decoder.set(spu_decoder_type::llvm);
     else if (spu_decoder == "asmjit")
-        g_cfg.core.spu_decoder.set(spu_decoder_type::asmjit);
+        config.core.spu_decoder.set(spu_decoder_type::asmjit);
     else if (spu_decoder == "dynamic")
-        g_cfg.core.spu_decoder.set(spu_decoder_type::dynamic);
+        config.core.spu_decoder.set(spu_decoder_type::dynamic);
     else
-        g_cfg.core.spu_decoder.set(spu_decoder_type::_static);
+        config.core.spu_decoder.set(spu_decoder_type::_static);
 
     // SPU Block Size
     std::string spu_block = get_option_value("rpcs3_spu_block_size", "safe");
     if (spu_block == "mega")
-        g_cfg.core.spu_block_size.set(spu_block_size_type::mega);
+        config.core.spu_block_size.set(spu_block_size_type::mega);
     else if (spu_block == "giga")
-        g_cfg.core.spu_block_size.set(spu_block_size_type::giga);
+        config.core.spu_block_size.set(spu_block_size_type::giga);
     else
-        g_cfg.core.spu_block_size.set(spu_block_size_type::safe);
+        config.core.spu_block_size.set(spu_block_size_type::safe);
 
     // Preferred SPU Threads
     std::string spu_threads = get_option_value("rpcs3_preferred_spu_threads", "0");
-    g_cfg.core.preferred_spu_threads.set(std::stoi(spu_threads));
+    config.core.preferred_spu_threads.set(std::stoi(spu_threads));
 
     // SPU Loop Detection
-    g_cfg.core.spu_loop_detection.set(get_option_value("rpcs3_spu_loop_detection", "disabled") == "enabled");
+    config.core.spu_loop_detection.set(get_option_value("rpcs3_spu_loop_detection", "disabled") == "enabled");
 
     // SPU Cache
-    g_cfg.core.spu_cache.set(get_option_value("rpcs3_spu_cache", "enabled") == "enabled");
+    config.core.spu_cache.set(get_option_value("rpcs3_spu_cache", "enabled") == "enabled");
 
     // LLVM Precompilation
-    g_cfg.core.llvm_precompilation.set(get_option_value("rpcs3_llvm_precompilation", "enabled") == "enabled");
+    config.core.llvm_precompilation.set(get_option_value("rpcs3_llvm_precompilation", "enabled") == "enabled");
 
     // Accurate DFMA
-    g_cfg.core.use_accurate_dfma.set(get_option_value("rpcs3_accurate_dfma", "enabled") == "enabled");
+    config.core.use_accurate_dfma.set(get_option_value("rpcs3_accurate_dfma", "enabled") == "enabled");
 
     // Clocks Scale
     std::string clocks = get_option_value("rpcs3_clocks_scale", "100");
-    g_cfg.core.clocks_scale.set(std::stoi(clocks));
+    config.core.clocks_scale.set(std::stoi(clocks));
 
     // Max SPURS Threads
     std::string spurs = get_option_value("rpcs3_max_spurs_threads", "auto");
     if (spurs == "auto")
-        g_cfg.core.max_spurs_threads.set(6);
+        config.core.max_spurs_threads.set(6);
     else
-        g_cfg.core.max_spurs_threads.set(std::stoi(spurs));
+        config.core.max_spurs_threads.set(std::stoi(spurs));
 
     // ==================== GPU OPTIONS ====================
     // Default Resolution: what the game is told the display is. Only between
@@ -837,35 +837,35 @@ static void libretro_apply_core_options()
     {
         const std::string resolution = get_option_value("rpcs3_default_resolution", "720p");
         if (resolution == "1080p")
-            g_cfg.video.resolution.set(video_resolution::_1080p);
+            config.video.resolution.set(video_resolution::_1080p);
         else if (resolution == "480p")
-            g_cfg.video.resolution.set(video_resolution::_480p);
+            config.video.resolution.set(video_resolution::_480p);
         else if (resolution == "576p")
-            g_cfg.video.resolution.set(video_resolution::_576p);
+            config.video.resolution.set(video_resolution::_576p);
         else
-            g_cfg.video.resolution.set(video_resolution::_720p);
+            config.video.resolution.set(video_resolution::_720p);
     }
 
     // Resolution Scale
     std::string res_scale = get_option_value("rpcs3_resolution_scale", "100");
-    g_cfg.video.resolution_scale_percent.set(std::stoi(res_scale));
+    config.video.resolution_scale_percent.set(std::stoi(res_scale));
 
     // Resolution Scale Threshold
-    g_cfg.video.min_scalable_dimension.set(std::stoi(get_option_value("rpcs3_scale_threshold", "16")));
+    config.video.min_scalable_dimension.set(std::stoi(get_option_value("rpcs3_scale_threshold", "16")));
     // No option for it: the frame goes to the frontend at its own size, so
     // nothing is scaled here and RPCS3's output scaling has nothing to do.
     // The frontend scales it to the screen, with its own filter (Video >
     // Scaling > Bilinear Filtering, or a shader).
-    g_cfg.video.output_scaling.set(output_scaling_mode::bilinear);
+    config.video.output_scaling.set(output_scaling_mode::bilinear);
 
     // ZCULL Accuracy, RPCS3's three settings as its own UI makes them
     const std::string zcull = get_option_value("rpcs3_zcull_accuracy", "precise");
-    g_cfg.video.precise_zpass_count.set(zcull == "precise");
-    g_cfg.video.relaxed_zcull_sync.set(zcull == "relaxed");
+    config.video.precise_zpass_count.set(zcull == "precise");
+    config.video.relaxed_zcull_sync.set(zcull == "relaxed");
 
     // Frame Limit
     std::string limit = get_option_value("rpcs3_frame_limit", "auto");
-    g_cfg.video.vsync.set(vsync_mode::off);  // Disable RPCS3 vsync, RetroArch controls timing
+    config.video.vsync.set(vsync_mode::off);  // Disable RPCS3 vsync, RetroArch controls timing
 
     // Auto is RPCS3's own default: at most one flip per PS3 refresh (the
     // VBlank Rate). Leaving the limiter off for it, as this used to, let
@@ -873,144 +873,144 @@ static void libretro_apply_core_options()
     // 144 and 240 have no frame_limit_type of their own; they go through the
     // second limit, which applies when the first one is unlimited.
     g_disable_frame_limit = false;
-    g_cfg.video.second_frame_limit.set(0);
+    config.video.second_frame_limit.set(0);
 
     if (limit == "off" || limit == "Off")
     {
         g_disable_frame_limit = true;
-        g_cfg.video.frame_limit.set(frame_limit_type::none);
+        config.video.frame_limit.set(frame_limit_type::none);
     }
     else if (limit == "ps3")
-        g_cfg.video.frame_limit.set(frame_limit_type::_ps3);
+        config.video.frame_limit.set(frame_limit_type::_ps3);
     else if (limit == "30")
-        g_cfg.video.frame_limit.set(frame_limit_type::_30);
+        config.video.frame_limit.set(frame_limit_type::_30);
     else if (limit == "50")
-        g_cfg.video.frame_limit.set(frame_limit_type::_50);
+        config.video.frame_limit.set(frame_limit_type::_50);
     else if (limit == "60")
-        g_cfg.video.frame_limit.set(frame_limit_type::_60);
+        config.video.frame_limit.set(frame_limit_type::_60);
     else if (limit == "120")
-        g_cfg.video.frame_limit.set(frame_limit_type::_120);
+        config.video.frame_limit.set(frame_limit_type::_120);
     else if (limit == "144" || limit == "240")
     {
-        g_cfg.video.frame_limit.set(frame_limit_type::infinite);
-        g_cfg.video.second_frame_limit.set(std::stoi(limit));
+        config.video.frame_limit.set(frame_limit_type::infinite);
+        config.video.second_frame_limit.set(std::stoi(limit));
     }
     else
-        g_cfg.video.frame_limit.set(frame_limit_type::_auto);
+        config.video.frame_limit.set(frame_limit_type::_auto);
 
     // Shader Mode
     std::string shader_mode = get_option_value("rpcs3_shader_mode", "async");
     if (shader_mode == "async_interpreter")
-        g_cfg.video.shadermode.set(shader_mode::async_with_interpreter);
+        config.video.shadermode.set(shader_mode::async_with_interpreter);
     else if (shader_mode == "interpreter")
-        g_cfg.video.shadermode.set(shader_mode::interpreter_only);
+        config.video.shadermode.set(shader_mode::interpreter_only);
     else if (shader_mode == "async" || shader_mode == "async_recompiler")
-        g_cfg.video.shadermode.set(shader_mode::async_recompiler);
+        config.video.shadermode.set(shader_mode::async_recompiler);
     else
-        g_cfg.video.shadermode.set(shader_mode::recompiler);
+        config.video.shadermode.set(shader_mode::recompiler);
 
     // Shader compiler threads. 0 lets RPCS3 pick from the CPU it sees; a fixed
     // count is here because that guess is made for a desktop where the emulator
     // owns the machine, and inside a frontend it does not.
     std::string shader_threads = get_option_value("rpcs3_shader_compiler_threads", "auto");
     if (shader_threads == "auto")
-        g_cfg.video.shader_compiler_threads_count.set(0);
+        config.video.shader_compiler_threads_count.set(0);
     else
-        g_cfg.video.shader_compiler_threads_count.set(std::atoi(shader_threads.c_str()));
+        config.video.shader_compiler_threads_count.set(std::atoi(shader_threads.c_str()));
 
     // Anisotropic Filter
     std::string aniso = get_option_value("rpcs3_anisotropic_filter", "auto");
     if (aniso == "auto")
-        g_cfg.video.anisotropic_level_override.set(0);
+        config.video.anisotropic_level_override.set(0);
     else
-        g_cfg.video.anisotropic_level_override.set(std::stoi(aniso));
+        config.video.anisotropic_level_override.set(std::stoi(aniso));
 
     // Anti-Aliasing and Shader Quality were offered here but never applied
-    g_cfg.video.antialiasing_level.set(get_option_value("rpcs3_msaa", "auto") == "disabled" ? msaa_level::none : msaa_level::_auto);
+    config.video.antialiasing_level.set(get_option_value("rpcs3_msaa", "auto") == "disabled" ? msaa_level::none : msaa_level::_auto);
 
     const std::string shader_quality = get_option_value("rpcs3_shader_quality", "high");
-    g_cfg.video.shader_precision.set(shader_quality == "low" ? gpu_preset_level::low :
+    config.video.shader_precision.set(shader_quality == "low" ? gpu_preset_level::low :
         shader_quality == "ultra" ? gpu_preset_level::ultra : gpu_preset_level::high);
 
-    g_cfg.video.disable_zcull_queries.set(get_option_value("rpcs3_disable_zcull_queries", "disabled") == "enabled");
-    g_cfg.video.vblank_ntsc.set(get_option_value("rpcs3_vblank_ntsc", "enabled") == "enabled");
-    g_cfg.core.rsx_accurate_res_access.set(get_option_value("rpcs3_accurate_rsx_reservation", "disabled") == "enabled");
+    config.video.disable_zcull_queries.set(get_option_value("rpcs3_disable_zcull_queries", "disabled") == "enabled");
+    config.video.vblank_ntsc.set(get_option_value("rpcs3_vblank_ntsc", "enabled") == "enabled");
+    config.core.rsx_accurate_res_access.set(get_option_value("rpcs3_accurate_rsx_reservation", "disabled") == "enabled");
 
     // These had core options since the port, which nothing ever read: setting
     // them changed nothing. Each goes to the RPCS3 setting it is named after.
     const auto enabled = [](const char* key, const char* def) { return get_option_value(key, def) == "enabled"; };
 
-    g_cfg.core.spu_verification.set(enabled("rpcs3_spu_verification", "enabled"));
-    g_cfg.core.accurate_cache_line_stores.set(enabled("rpcs3_spu_cache_line_stores", "disabled"));
-    g_cfg.core.mfc_shuffling_in_steps.set(enabled("rpcs3_mfc_shuffling", "disabled"));
-    g_cfg.core.spu_delay_penalty.set(std::clamp(std::atoi(get_option_value("rpcs3_spu_delay_penalty", "3").c_str()), 0, 16));
-    g_cfg.core.ppu_use_nj_bit.set(enabled("rpcs3_ppu_nj_mode", "disabled"));
-    g_cfg.core.ppu_set_sat_bit.set(enabled("rpcs3_ppu_set_sat_bit", "disabled"));
-    g_cfg.core.ppu_set_vnan.set(enabled("rpcs3_ppu_accurate_vector_nan", "disabled"));
-    g_cfg.core.ppu_set_fpcc.set(enabled("rpcs3_ppu_set_fpcc", "disabled"));
-    g_cfg.core.hook_functions.set(enabled("rpcs3_hook_static_funcs", "disabled"));
-    g_cfg.core.hle_lwmutex.set(enabled("rpcs3_hle_lwmutex", "disabled"));
+    config.core.spu_verification.set(enabled("rpcs3_spu_verification", "enabled"));
+    config.core.accurate_cache_line_stores.set(enabled("rpcs3_spu_cache_line_stores", "disabled"));
+    config.core.mfc_shuffling_in_steps.set(enabled("rpcs3_mfc_shuffling", "disabled"));
+    config.core.spu_delay_penalty.set(std::clamp(std::atoi(get_option_value("rpcs3_spu_delay_penalty", "3").c_str()), 0, 16));
+    config.core.ppu_use_nj_bit.set(enabled("rpcs3_ppu_nj_mode", "disabled"));
+    config.core.ppu_set_sat_bit.set(enabled("rpcs3_ppu_set_sat_bit", "disabled"));
+    config.core.ppu_set_vnan.set(enabled("rpcs3_ppu_accurate_vector_nan", "disabled"));
+    config.core.ppu_set_fpcc.set(enabled("rpcs3_ppu_set_fpcc", "disabled"));
+    config.core.hook_functions.set(enabled("rpcs3_hook_static_funcs", "disabled"));
+    config.core.hle_lwmutex.set(enabled("rpcs3_hle_lwmutex", "disabled"));
 
     // The rest of RPCS3's settings dialog (NNshi's list)
-    g_cfg.core.spu_accurate_dma.set(enabled("rpcs3_spu_accurate_dma", "disabled"));
-    g_cfg.core.spu_accurate_reservations.set(enabled("rpcs3_spu_accurate_reservations", "enabled"));
-    g_cfg.core.debug_console_mode.set(enabled("rpcs3_debug_console_mode", "disabled"));
-    g_cfg.core.mfc_transfers_shuffling.set(enabled("rpcs3_mfc_delay_command", "disabled") ? 1 : 0);
-    g_cfg.vfs.emulate_hdd_speed.set(enabled("rpcs3_emulate_hdd_speed", "disabled"));
-    g_cfg.vfs.emulate_bdvd_speed.set(enabled("rpcs3_emulate_bdvd_speed", "disabled"));
-    g_cfg.core.ppu_reservation_priority_over_spu.set(enabled("rpcs3_ppu_reservation_priority", "disabled"));
-    g_cfg.video.host_label_synchronization.set(enabled("rpcs3_host_gpu_labels", "disabled"));
-    g_cfg.video.emulate_depth_compare.set(enabled("rpcs3_emulate_depth_compare", "disabled"));
-    g_cfg.video.force_hw_MSAA_resolve.set(enabled("rpcs3_force_hw_msaa_resolve", "disabled"));
-    g_cfg.video.handle_tiled_memory.set(enabled("rpcs3_handle_tiled_memory", "disabled"));
-    g_cfg.video.vk.use_rebar_upload_heap.set(enabled("rpcs3_use_rebar", "enabled"));
-    g_cfg.core.max_cpu_preempt_count_per_frame.set(std::clamp(std::atoi(get_option_value("rpcs3_max_preempt_count", "0").c_str()), 0, 400));
-    g_cfg.core.ppu_threads.set(std::clamp(std::atoi(get_option_value("rpcs3_ppu_threads", "2").c_str()), 1, 8));
-    g_cfg.core.llvm_threads.set(std::clamp(std::atoi(get_option_value("rpcs3_llvm_threads", "0").c_str()), 0, 1024));
+    config.core.spu_accurate_dma.set(enabled("rpcs3_spu_accurate_dma", "disabled"));
+    config.core.spu_accurate_reservations.set(enabled("rpcs3_spu_accurate_reservations", "enabled"));
+    config.core.debug_console_mode.set(enabled("rpcs3_debug_console_mode", "disabled"));
+    config.core.mfc_transfers_shuffling.set(enabled("rpcs3_mfc_delay_command", "disabled") ? 1 : 0);
+    config.vfs.emulate_hdd_speed.set(enabled("rpcs3_emulate_hdd_speed", "disabled"));
+    config.vfs.emulate_bdvd_speed.set(enabled("rpcs3_emulate_bdvd_speed", "disabled"));
+    config.core.ppu_reservation_priority_over_spu.set(enabled("rpcs3_ppu_reservation_priority", "disabled"));
+    config.video.host_label_synchronization.set(enabled("rpcs3_host_gpu_labels", "disabled"));
+    config.video.emulate_depth_compare.set(enabled("rpcs3_emulate_depth_compare", "disabled"));
+    config.video.force_hw_MSAA_resolve.set(enabled("rpcs3_force_hw_msaa_resolve", "disabled"));
+    config.video.handle_tiled_memory.set(enabled("rpcs3_handle_tiled_memory", "disabled"));
+    config.video.vk.use_rebar_upload_heap.set(enabled("rpcs3_use_rebar", "enabled"));
+    config.core.max_cpu_preempt_count_per_frame.set(std::clamp(std::atoi(get_option_value("rpcs3_max_preempt_count", "0").c_str()), 0, 400));
+    config.core.ppu_threads.set(std::clamp(std::atoi(get_option_value("rpcs3_ppu_threads", "2").c_str()), 1, 8));
+    config.core.llvm_threads.set(std::clamp(std::atoi(get_option_value("rpcs3_llvm_threads", "0").c_str()), 0, 1024));
     {
         const std::string sched = get_option_value("rpcs3_thread_scheduler", "os");
-        g_cfg.core.thread_scheduler.set(sched == "old" ? thread_scheduler_mode::old
+        config.core.thread_scheduler.set(sched == "old" ? thread_scheduler_mode::old
             : sched == "alt" ? thread_scheduler_mode::alt : thread_scheduler_mode::os);
     }
-    g_cfg.video.disable_FIFO_reordering.set(enabled("rpcs3_disable_fifo_reordering", "disabled"));
+    config.video.disable_FIFO_reordering.set(enabled("rpcs3_disable_fifo_reordering", "disabled"));
     // By what they do: RPCS3's dialog has these two the wrong way round, each
     // checkbox setting the other one's config entry
-    g_cfg.video.disable_hardware_blending.set(enabled("rpcs3_disable_hw_blending", "disabled"));
-    g_cfg.video.disable_hardware_texel_remapping.set(enabled("rpcs3_disable_hw_colorspace", "disabled"));
-    g_cfg.video.use_gpu_texture_scaling.set(enabled("rpcs3_gpu_texture_scaling", "disabled"));
-    g_cfg.core.spu_reservation_busy_waiting_enabled.set(enabled("rpcs3_spu_events_busy_loop", "disabled"));
-    g_cfg.core.set_daz_and_ftz.set(enabled("rpcs3_set_daz_ftz", "disabled"));
-    g_cfg.core.ppu_128_reservations_loop_max_length.set(std::clamp(std::atoi(get_option_value("rpcs3_accurate_ppu_128", "0").c_str()), -1, 14));
+    config.video.disable_hardware_blending.set(enabled("rpcs3_disable_hw_blending", "disabled"));
+    config.video.disable_hardware_texel_remapping.set(enabled("rpcs3_disable_hw_colorspace", "disabled"));
+    config.video.use_gpu_texture_scaling.set(enabled("rpcs3_gpu_texture_scaling", "disabled"));
+    config.core.spu_reservation_busy_waiting_enabled.set(enabled("rpcs3_spu_events_busy_loop", "disabled"));
+    config.core.set_daz_and_ftz.set(enabled("rpcs3_set_daz_ftz", "disabled"));
+    config.core.ppu_128_reservations_loop_max_length.set(std::clamp(std::atoi(get_option_value("rpcs3_accurate_ppu_128", "0").c_str()), -1, 14));
     {
         const std::string bias = get_option_value("rpcs3_fb_aliasing_bias", "auto");
-        g_cfg.video.fb_aliasing_bias.set(bias == "color" ? framebuffer_aliasing_bias::prefer_color
+        config.video.fb_aliasing_bias.set(bias == "color" ? framebuffer_aliasing_bias::prefer_color
             : bias == "depth" ? framebuffer_aliasing_bias::prefer_depth : framebuffer_aliasing_bias::_auto);
     }
 
     const std::string xfloat = get_option_value("rpcs3_spu_xfloat_accuracy", "approximate");
-    g_cfg.core.spu_xfloat_accuracy.set(xfloat == "accurate" ? xfloat_accuracy::accurate :
+    config.core.spu_xfloat_accuracy.set(xfloat == "accurate" ? xfloat_accuracy::accurate :
         xfloat == "relaxed" ? xfloat_accuracy::relaxed :
         xfloat == "inaccurate" ? xfloat_accuracy::inaccurate : xfloat_accuracy::approximate);
 
     const std::string fifo = get_option_value("rpcs3_rsx_fifo_accuracy", "atomic");
-    g_cfg.core.rsx_fifo_accuracy.set(fifo == "fast" ? rsx_fifo_mode::fast :
+    config.core.rsx_fifo_accuracy.set(fifo == "fast" ? rsx_fifo_mode::fast :
         fifo == "atomic_ordered" ? rsx_fifo_mode::atomic_ordered :
         fifo == "as_ps3" ? rsx_fifo_mode::as_ps3 : rsx_fifo_mode::atomic);
 
     // "Automatic" is RPCS3's own default, which depends on the host OS.
     const std::string sleep_timers = get_option_value("rpcs3_sleep_timers_accuracy", "auto");
     if (sleep_timers == "as_host")
-        g_cfg.core.sleep_timers_accuracy.set(sleep_timers_accuracy_level::_as_host);
+        config.core.sleep_timers_accuracy.set(sleep_timers_accuracy_level::_as_host);
     else if (sleep_timers == "usleep")
-        g_cfg.core.sleep_timers_accuracy.set(sleep_timers_accuracy_level::_usleep);
+        config.core.sleep_timers_accuracy.set(sleep_timers_accuracy_level::_usleep);
     else if (sleep_timers == "all_timers")
-        g_cfg.core.sleep_timers_accuracy.set(sleep_timers_accuracy_level::_all_timers);
+        config.core.sleep_timers_accuracy.set(sleep_timers_accuracy_level::_all_timers);
     else
-        g_cfg.core.sleep_timers_accuracy.from_default();
+        config.core.sleep_timers_accuracy.from_default();
 
-    g_cfg.video.disable_vertex_cache.set(enabled("rpcs3_disable_vertex_cache", "disabled"));
-    g_cfg.video.force_cpu_blit_processing.set(enabled("rpcs3_cpu_blit", "disabled"));
-    g_cfg.video.disable_blit_engine_upscaling.set(enabled("rpcs3_disable_blit_upscaling", "disabled"));
+    config.video.disable_vertex_cache.set(enabled("rpcs3_disable_vertex_cache", "disabled"));
+    config.video.force_cpu_blit_processing.set(enabled("rpcs3_cpu_blit", "disabled"));
+    config.video.disable_blit_engine_upscaling.set(enabled("rpcs3_disable_blit_upscaling", "disabled"));
 
     libretro_metrics::enable(enabled("rpcs3_timing_log", "disabled"));
 
@@ -1021,9 +1021,9 @@ static void libretro_apply_core_options()
         const bool on = level != "disabled";
         const detail_level detail = level == "minimal" ? detail_level::minimal : level == "low" ? detail_level::low :
             level == "high" ? detail_level::high : detail_level::medium;
-        const bool changed = g_cfg.video.perf_overlay.enabled.get() != on || (on && g_cfg.video.perf_overlay.level.get() != detail);
-        g_cfg.video.perf_overlay.enabled.set(on);
-        g_cfg.video.perf_overlay.level.set(detail);
+        const bool changed = config.video.perf_overlay.enabled.get() != on || (on && config.video.perf_overlay.level.get() != detail);
+        config.video.perf_overlay.enabled.set(on);
+        config.video.perf_overlay.level.set(detail);
         if (changed && !Emu.IsStopped())
             rsx::overlays::reset_performance_overlay();
     }
@@ -1039,9 +1039,9 @@ static void libretro_apply_core_options()
         // a second time (NNshi): so with 4:3 the picture fills the frame, as
         // Stretch to Display Area does, and RetroArch gives it its shape.
         const bool four_by_three = get_option_value("rpcs3_aspect_ratio", "16:9") == "4:3";
-        g_cfg.video.aspect_ratio.set(four_by_three ? video_aspect::_4_3 : video_aspect::_16_9);
+        config.video.aspect_ratio.set(four_by_three ? video_aspect::_4_3 : video_aspect::_16_9);
         const std::string stretch = get_option_value("rpcs3_stretch_to_display", "disabled");
-        g_cfg.video.stretch_to_display_area.set(stretch != "disabled" || four_by_three);
+        config.video.stretch_to_display_area.set(stretch != "disabled" || four_by_three);
         float aspect = (four_by_three && stretch == "disabled") ? 4.0f / 3.0f : 16.0f / 9.0f;
         if (unsigned w = 0, h = 0; std::sscanf(stretch.c_str(), "%u:%u", &w, &h) == 2 && w && h)
             aspect = static_cast<float>(w) / static_cast<float>(h);
@@ -1051,39 +1051,39 @@ static void libretro_apply_core_options()
             s_reported_width = s_reported_height = 0; // reported again with the next frame
         }
     }
-    g_cfg.video.vk.asynchronous_texture_streaming.set(enabled("rpcs3_async_texture_streaming", "disabled"));
+    config.video.vk.asynchronous_texture_streaming.set(enabled("rpcs3_async_texture_streaming", "disabled"));
     // The option is in milliseconds, the setting in microseconds.
-    g_cfg.video.driver_recovery_timeout.set(std::clamp(std::atoi(get_option_value("rpcs3_driver_recovery_timeout", "1000").c_str()), 0, 30000) * 1000);
+    config.video.driver_recovery_timeout.set(std::clamp(std::atoi(get_option_value("rpcs3_driver_recovery_timeout", "1000").c_str()), 0, 30000) * 1000);
 
     const std::string area = get_option_value("rpcs3_license_area", "usa");
-    g_cfg.sys.license_area.set(area == "eu" ? CELL_SYSUTIL_LICENSE_AREA_E :
+    config.sys.license_area.set(area == "eu" ? CELL_SYSUTIL_LICENSE_AREA_E :
         area == "jp" ? CELL_SYSUTIL_LICENSE_AREA_J :
         area == "hk" ? CELL_SYSUTIL_LICENSE_AREA_H :
         area == "kr" ? CELL_SYSUTIL_LICENSE_AREA_K :
         area == "cn" ? CELL_SYSUTIL_LICENSE_AREA_C : CELL_SYSUTIL_LICENSE_AREA_A);
 
-    g_cfg.misc.show_shader_compilation_hint.set(enabled("rpcs3_show_shader_compilation_hint", "disabled"));
-    g_cfg.misc.show_ppu_compilation_hint.set(enabled("rpcs3_show_ppu_compilation_hint", "disabled"));
-    g_cfg.misc.silence_all_logs.set(enabled("rpcs3_silence_all_logs", "disabled"));
-    g_cfg.core.spu_getllar_spin_optimization_disabled.set(get_option_value("rpcs3_disable_getllar_spin_opt", "disabled") == "enabled");
+    config.misc.show_shader_compilation_hint.set(enabled("rpcs3_show_shader_compilation_hint", "disabled"));
+    config.misc.show_ppu_compilation_hint.set(enabled("rpcs3_show_ppu_compilation_hint", "disabled"));
+    config.misc.silence_all_logs.set(enabled("rpcs3_silence_all_logs", "disabled"));
+    config.core.spu_getllar_spin_optimization_disabled.set(get_option_value("rpcs3_disable_getllar_spin_opt", "disabled") == "enabled");
 
     // Write Color Buffers
-    g_cfg.video.write_color_buffers.set(get_option_value("rpcs3_write_color_buffers", "disabled") == "enabled");
+    config.video.write_color_buffers.set(get_option_value("rpcs3_write_color_buffers", "disabled") == "enabled");
 
     // Read Color Buffers
-    g_cfg.video.read_color_buffers.set(get_option_value("rpcs3_read_color_buffers", "disabled") == "enabled");
+    config.video.read_color_buffers.set(get_option_value("rpcs3_read_color_buffers", "disabled") == "enabled");
 
     // Read Depth Buffers
-    g_cfg.video.read_depth_buffer.set(get_option_value("rpcs3_read_depth_buffers", "disabled") == "enabled");
+    config.video.read_depth_buffer.set(get_option_value("rpcs3_read_depth_buffers", "disabled") == "enabled");
 
     // Write Depth Buffers
-    g_cfg.video.write_depth_buffer.set(get_option_value("rpcs3_write_depth_buffers", "disabled") == "enabled");
+    config.video.write_depth_buffer.set(get_option_value("rpcs3_write_depth_buffers", "disabled") == "enabled");
 
     // Strict Rendering
-    g_cfg.video.strict_rendering_mode.set(get_option_value("rpcs3_strict_rendering", "disabled") == "enabled");
+    config.video.strict_rendering_mode.set(get_option_value("rpcs3_strict_rendering", "disabled") == "enabled");
 
     // Multithreaded RSX
-    g_cfg.video.multithreaded_rsx.set(get_option_value("rpcs3_multithreaded_rsx", "disabled") == "enabled");
+    config.video.multithreaded_rsx.set(get_option_value("rpcs3_multithreaded_rsx", "disabled") == "enabled");
 
     // VBlank Rate. From List: 120 Hz for a game of vblank_unlock.txt - with
     // the core still at 60 frames a second for a 30 fps game, which then runs
@@ -1108,7 +1108,7 @@ static void libretro_apply_core_options()
                 log_cb(RETRO_LOG_INFO, "RPCS3: VBlank Frequency from the list: %s is not in vblank_unlock.txt, 60 Hz\n", serial.c_str());
         }
     }
-    g_cfg.video.vblank_rate.set(std::stoi(vblank));
+    config.video.vblank_rate.set(std::stoi(vblank));
 
     g_libretro_frontend_vblank = get_option_value("rpcs3_frame_pacing", "emulator") == "frontend";
 
@@ -1118,15 +1118,15 @@ static void libretro_apply_core_options()
 
     // Driver Wake-Up Delay
     std::string driver_delay = get_option_value("rpcs3_driver_wakeup_delay", "0");
-    g_cfg.video.driver_wakeup_delay.set(std::stoi(driver_delay));
+    config.video.driver_wakeup_delay.set(std::stoi(driver_delay));
 
     // ==================== AUDIO ====================
     // cellAudio's own buffer and time stretching are off and not options:
     // RetroArch keeps the buffer, and cellAudio's on top of it is only latency
     // the pictures do not have (NNshi, Project Diva); time stretching works
     // only with that buffer on.
-    g_cfg.audio.enable_buffering.set(false);
-    g_cfg.audio.enable_time_stretching.set(false);
+    config.audio.enable_buffering.set(false);
+    config.audio.enable_time_stretching.set(false);
 
     // Audio Format: the speakers the PS3 reports, which decides the mix a game
     // makes. A core cannot ask RetroArch for its Output Layout, and offering
@@ -1137,61 +1137,61 @@ static void libretro_apply_core_options()
     const std::string audio_fmt = get_option_value("rpcs3_audio_format", "stereo");
     if (libretro_audio_multi_available() && audio_fmt == "surround_7_1")
     {
-        g_cfg.audio.format.set(audio_format::manual);
-        g_cfg.audio.formats.set(static_cast<u32>(audio_format_flag::lpcm_5_1_48khz) | static_cast<u32>(audio_format_flag::lpcm_7_1_48khz));
-        g_cfg.audio.channel_layout.set(audio_channel_layout::surround_7_1);
+        config.audio.format.set(audio_format::manual);
+        config.audio.formats.set(static_cast<u32>(audio_format_flag::lpcm_5_1_48khz) | static_cast<u32>(audio_format_flag::lpcm_7_1_48khz));
+        config.audio.channel_layout.set(audio_channel_layout::surround_7_1);
     }
     else if (libretro_audio_multi_available() && audio_fmt == "surround_5_1")
     {
-        g_cfg.audio.format.set(audio_format::manual);
-        g_cfg.audio.formats.set(static_cast<u32>(audio_format_flag::lpcm_5_1_48khz));
-        g_cfg.audio.channel_layout.set(audio_channel_layout::surround_5_1);
+        config.audio.format.set(audio_format::manual);
+        config.audio.formats.set(static_cast<u32>(audio_format_flag::lpcm_5_1_48khz));
+        config.audio.channel_layout.set(audio_channel_layout::surround_5_1);
     }
     else
     {
-        g_cfg.audio.format.set(audio_format::stereo);
-        g_cfg.audio.channel_layout.set(audio_channel_layout::stereo);
+        config.audio.format.set(audio_format::stereo);
+        config.audio.channel_layout.set(audio_channel_layout::stereo);
     }
 
     // Master Volume
     std::string volume = get_option_value("rpcs3_master_volume", "100");
-    g_cfg.audio.volume.set(std::stoi(volume));
+    config.audio.volume.set(std::stoi(volume));
 
     // ==================== NETWORK OPTIONS ====================
     // None of these were read before: the network stayed off whatever they
     // said. The connection is set up when a game boots, so only between games.
     if (Emu.IsStopped())
     {
-        g_cfg.net.net_active.set(get_option_value("rpcs3_network_enabled", "disabled") == "enabled"
+        config.net.net_active.set(get_option_value("rpcs3_network_enabled", "disabled") == "enabled"
             ? np_internet_status::enabled : np_internet_status::disabled);
         const std::string psn = get_option_value("rpcs3_psn_status", "disabled");
-        g_cfg.net.psn_status.set(psn == "simulated" ? np_psn_status::psn_fake
+        config.net.psn_status.set(psn == "simulated" ? np_psn_status::psn_fake
             : psn == "rpcn" ? np_psn_status::psn_rpcn : np_psn_status::disabled);
-        g_cfg.net.upnp_enabled.set(get_option_value("rpcs3_upnp", "disabled") == "enabled");
-        g_cfg.net.dns.from_string(get_option_value("rpcs3_dns", "8.8.8.8"));
+        config.net.upnp_enabled.set(get_option_value("rpcs3_upnp", "disabled") == "enabled");
+        config.net.dns.from_string(get_option_value("rpcs3_dns", "8.8.8.8"));
     }
-    g_cfg.misc.show_rpcn_popups.set(get_option_value("rpcs3_show_rpcn_popups", "enabled") == "enabled");
-    g_cfg.misc.show_trophy_popups.set(get_option_value("rpcs3_show_trophy_popups", "enabled") == "enabled");
+    config.misc.show_rpcn_popups.set(get_option_value("rpcs3_show_rpcn_popups", "enabled") == "enabled");
+    config.misc.show_trophy_popups.set(get_option_value("rpcs3_show_trophy_popups", "enabled") == "enabled");
 
     // ==================== SYSTEM/CORE OPTIONS ====================
     // System Language
     std::string lang = get_option_value("rpcs3_language", "english");
-    if (lang == "japanese") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_JAPANESE);
-    else if (lang == "french") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_FRENCH);
-    else if (lang == "spanish") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_SPANISH);
-    else if (lang == "german") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_GERMAN);
-    else if (lang == "italian") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_ITALIAN);
-    else if (lang == "dutch") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_DUTCH);
-    else if (lang == "portuguese") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_PORTUGUESE_PT);
-    else if (lang == "russian") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_RUSSIAN);
-    else if (lang == "korean") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_KOREAN);
-    else if (lang == "chinese_trad") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_CHINESE_T);
-    else if (lang == "chinese_simp") g_cfg.sys.language.set(CELL_SYSUTIL_LANG_CHINESE_S);
-    else g_cfg.sys.language.set(CELL_SYSUTIL_LANG_ENGLISH_US);
+    if (lang == "japanese") config.sys.language.set(CELL_SYSUTIL_LANG_JAPANESE);
+    else if (lang == "french") config.sys.language.set(CELL_SYSUTIL_LANG_FRENCH);
+    else if (lang == "spanish") config.sys.language.set(CELL_SYSUTIL_LANG_SPANISH);
+    else if (lang == "german") config.sys.language.set(CELL_SYSUTIL_LANG_GERMAN);
+    else if (lang == "italian") config.sys.language.set(CELL_SYSUTIL_LANG_ITALIAN);
+    else if (lang == "dutch") config.sys.language.set(CELL_SYSUTIL_LANG_DUTCH);
+    else if (lang == "portuguese") config.sys.language.set(CELL_SYSUTIL_LANG_PORTUGUESE_PT);
+    else if (lang == "russian") config.sys.language.set(CELL_SYSUTIL_LANG_RUSSIAN);
+    else if (lang == "korean") config.sys.language.set(CELL_SYSUTIL_LANG_KOREAN);
+    else if (lang == "chinese_trad") config.sys.language.set(CELL_SYSUTIL_LANG_CHINESE_T);
+    else if (lang == "chinese_simp") config.sys.language.set(CELL_SYSUTIL_LANG_CHINESE_S);
+    else config.sys.language.set(CELL_SYSUTIL_LANG_ENGLISH_US);
 
     // Enter Button Assignment
     std::string enter_btn = get_option_value("rpcs3_enter_button", "cross");
-    g_cfg.sys.enter_button_assignment.set(enter_btn == "circle" ? enter_button_assign::circle : enter_button_assign::cross);
+    config.sys.enter_button_assignment.set(enter_btn == "circle" ? enter_button_assign::circle : enter_button_assign::cross);
 
     // max_cpu_preempt_count_per_frame is set by its core option above.
 
@@ -1203,8 +1203,6 @@ static void libretro_apply_core_options()
 static void init_emu_callbacks();
 static void context_reset();
 static void context_destroy();
-
-static void libretro_apply_core_options();
 
 #ifdef _WIN32
 static void* g_lrcore_vectored_handler = nullptr;
@@ -3632,13 +3630,28 @@ void retro_run(void)
     bool updated = false;
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
     {
-        libretro_apply_core_options();
-        // Fallback for frontends without the menu display-update callback.
+        // Stage requested values separately: an RSX thread must never observe
+        // even a transient change to settings whose resources already exist.
+        static cfg_root requested_config;
+        requested_config.from_string(g_cfg.to_string());
+        libretro_apply_core_options(requested_config);
         libretro_update_options_display();
-        // The game's database settings stay on top of options changed while
-        // it runs, as they were at its start.
         if (!s_database_config.empty())
-            g_cfg.from_string(s_database_config);
+            requested_config.from_string(s_database_config);
+        // Match Emulator::SaveSettings: only upstream's dynamic entries may
+        // change while running. RetroArch retains all requested .opt values.
+        g_cfg.from_string(requested_config.to_string(), true);
+        if (log_cb)
+            log_cb(RETRO_LOG_INFO, "RPCS3: runtime options applied using upstream dynamic settings; effective MSAA=%s, Shader Mode=%s, Precise ZCULL=%s. Other changes require restarting RetroArch.\n",
+                g_cfg.video.antialiasing_level.to_string().c_str(),
+                g_cfg.video.shadermode.to_string().c_str(),
+                g_cfg.video.precise_zpass_count.to_string().c_str());
+#ifdef HAVE_VULKAN
+        // Options and database overrides cannot enable features that were
+        // unavailable when the frontend's shared Vulkan device was created.
+        if (auto* swapchain = vk::libretro::shared_swapchain())
+            swapchain->get_device().apply_config_limits();
+#endif
     }
 
     // Poll input

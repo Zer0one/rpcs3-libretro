@@ -506,6 +506,9 @@ VKGSRender::VKGSRender(utils::serial* ar) noexcept : GSRender(ar)
 	}
 
 	m_device = const_cast<vk::render_device*>(&m_swapchain->get_device());
+	// BootGame can reload settings after frontend device negotiation. Apply
+	// enabled-device limits before creating queries and renderer resources.
+	m_device->apply_config_limits();
 	vk::set_current_renderer(m_swapchain->get_device());
 	vk::init();
 
